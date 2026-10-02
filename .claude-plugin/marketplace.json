@@ -1,0 +1,18 @@
+{
+  "name": "claude-acp-ui",
+  "owner": { "name": "Nguyễn Thế Huy" },
+  "metadata": {
+    "description": "Claude Code mods by Nguyễn Thế Huy"
+  },
+  "plugins": [
+    {
+      "name": "acp-ui",
+      "source": "./plugin",
+      "description": "Restyles the Claude Code terminal like an ACP chat: prompt and tool cards, inline diffs, subagent cards, a status band with a pixel cat, a /dash pane, themes, /enhance and the Né bug game",
+      "version": "0.7.0",
+      "author": { "name": "Nguyễn Thế Huy" },
+      "license": "MIT",
+      "keywords": ["ui", "terminal", "theme", "acp", "mod"]
+    }
+  ]
+}

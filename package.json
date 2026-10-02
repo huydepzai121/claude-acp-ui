@@ -1,0 +1,42 @@
+{
+  "name": "claude-acp-ui",
+  "version": "0.7.0",
+  "description": "A Claude Code mod that restyles the terminal like an ACP chat: prompt and tool cards, inline diffs, a status band, footer stats and a /dash pane",
+  "type": "module",
+  "bin": {
+    "claude-acp-ui": "bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "plugin/.claude-plugin/plugin.json",
+    "plugin/hooks",
+    "plugin/types"
+  ],
+  "scripts": {
+    "validate": "claude plugin validate plugin",
+    "test": "claude plugin test plugin",
+    "prepublishOnly": "claude plugin validate plugin && claude plugin test plugin"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-code-plugin",
+    "mod",
+    "terminal",
+    "tui",
+    "acp"
+  ],
+  "author": "Nguyễn Thế Huy",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huydepzai121/claude-acp-ui.git"
+  },
+  "homepage": "https://github.com/huydepzai121/claude-acp-ui#readme",
+  "bugs": {
+    "url": "https://github.com/huydepzai121/claude-acp-ui/issues"
+  }
+}

@@ -1,0 +1,331 @@
+import { expect, mock, test } from 'claude-code/testing'
+
+test('an Edit row shows its tool, file, counts and diff lines', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: {
+      tool_use_id: 'tu_1',
+      tool: 'Edit',
+      input: {
+        file_path: 'E:/Dev/www/Browzy/src/panel/viewport.ts',
+        old_string: 'a\nconst h = window.innerHeight;\nz',
+        new_string: 'a\nconst h = getViewportHeight(tab);\nonDevtoolsToggle(tab, relayout);\nz',
+      },
+      isRunning: false,
+      isErrored: false,
+      isInterrupted: false,
+    },
+  })
+
+  expect(await ui.find({ type: 'Text', text: 'Edit' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /src\/panel\/viewport\.ts/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '−1' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '+2' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /window/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'onDevtoolsToggle' })).toBeDefined()
+})
+
+test('a folded group lists each call with its target', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolGroup',
+    props: {
+      calls: [
+        { tool: 'Read', input: { file_path: 'src/panel/viewport.ts' }, isRunning: false, isErrored: false, isInterrupted: false },
+        { tool: 'Grep', input: { pattern: 'devtools', path: 'src' }, isRunning: true, isErrored: false, isInterrupted: false },
+      ],
+      isActive: true,
+      isExpanded: false,
+    },
+  })
+
+  expect(await ui.find({ type: 'Text', text: /2 tool calls/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '"devtools"' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: ' trong src' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^▗▄+▖$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '◌' })).toBeDefined()
+})
+
+test('the person’s prompt draws as a card with its text', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'UserMessage',
+    props: { text: 'sửa lỗi viewport', origin: { kind: 'composer' }, isExpanded: false },
+  })
+
+  expect(await ui.find({ type: 'Text', text: 'sửa lỗi viewport' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '› ' })).toBeDefined()
+})
+
+test('/dash opens the pane, and a second /dash closes it', async ($, on) => {
+  // The test's hooks stand for the engine's pane registry.
+  const open = new Set<string>()
+  on('ui.panes', () => ({
+    value: [...open].map(id => ({ id, title: id, isShown: true, isFocused: false, isPlaced: true })),
+  }))
+  on('ui.open', (_$, e) => {
+    open.add(e.id)
+    return { value: { isPlaced: true as const } }
+  })
+  on('ui.close', (_$, e) => {
+    open.delete(e.id)
+    return { value: undefined }
+  })
+  const run = () =>
+    $.command.run({
+      command: 'dash',
+      args: '',
+      origin: { kind: 'composer' },
+      presentation: { isFullscreen: false, columns: 120 },
+    })
+
+  expect((await run()).text).toContain('Đã mở')
+  expect(open.has('acp-dash')).toBe(true)
+  expect((await run()).text).toContain('Đã đóng')
+  expect(open.has('acp-dash')).toBe(false)
+})
+
+const LONG_EDIT = {
+  tool_use_id: 'tu_long',
+  tool: 'Edit',
+  input: {
+    file_path: 'src/panel/viewport.ts',
+    old_string: 'a\nconst h = window.innerHeight; // old\nz',
+    new_string: 'a\nconst h = getViewportHeight(tab);\nonDevtoolsToggle(tab, () => relayout(42));\nconst w = 1;\nconst s = "x";\nz',
+  },
+  isRunning: false,
+  isErrored: false,
+  isInterrupted: false,
+}
+
+test('diff lines are highlighted: keyword, function, number, string, comment', async $ => {
+  const ui = await $.ui.mount({ plugin: 'acp-ui', surface: 'terminal', component: 'ToolUse', props: LONG_EDIT })
+
+  expect(await ui.find({ type: 'Text', text: 'const' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'getViewportHeight' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '42' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '"x"' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '// old' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '✎' })).toBeDefined()
+})
+
+test('in fullscreen a long diff folds behind a toggle that opens it', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: LONG_EDIT,
+    viewport: { columns: 120, rows: 40, isFullscreen: true },
+  })
+
+  expect(await ui.find({ type: 'Text', text: 'getViewportHeight' })).toBeUndefined()
+  await ui.press({ key: 'fold-tu_long' })
+  expect(await ui.find({ type: 'Text', text: 'getViewportHeight' })).toBeDefined()
+})
+
+test('the pane draws a timeline and an activity chart from tool calls', async ($, on) => {
+  mock.clock(on)
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call({ tool: 'Read', file_path: 'a.ts' })
+  await $.tool.call({ tool: 'Grep', pattern: 'x' })
+
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'Pane',
+    requestId: 'acp-dash',
+    props: { title: 'Phiên làm việc', isFocused: false, bodyColumns: 48, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+  })
+
+  expect(await ui.find({ type: 'Text', text: /TIMELINE/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /HOẠT ĐỘNG/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /█/ })).toBeDefined()
+})
+
+const RUN_INPUT = { origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 120 } }
+const USAGE = { input_tokens: 10, output_tokens: 20, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
+
+test('/enhance rewrites the draft with the session context and fills the prompt box', async ($, on) => {
+  let asked = ''
+  let filled = ''
+  on('model.fork', (_$, e) => {
+    asked = e.prompt
+    return { value: { isAnswered: true as const, text: '```\nSửa lỗi viewport khi mở DevTools (F12).\n```', usage: USAGE } }
+  })
+  on('prompt.fill', (_$, e) => {
+    filled = e.text
+    return { isFilled: true, text: e.text, cursor: e.text.length }
+  })
+
+  const ran = await $.command.run({ command: 'enhance', args: 'sửa lỗi viewport khi f12', ...RUN_INPUT })
+
+  expect(asked).toContain('sửa lỗi viewport khi f12')
+  expect(filled).toBe('Sửa lỗi viewport khi mở DevTools (F12).')
+  expect(ran.text).toBeUndefined()
+})
+
+test('/enhance falls back to the session model in a new session', async ($, on) => {
+  let filled = ''
+  on('model.fork', () => ({ value: { isAnswered: false as const, reason: 'nothing-to-fork' as const, usage: USAGE } }))
+  on('session.model', () => ({ value: 'claude-opus-5-5' }))
+  on('model.complete', () => ({ value: { isAnswered: true as const, text: 'Câu đã viết lại', usage: USAGE } }))
+  on('prompt.fill', (_$, e) => {
+    filled = e.text
+    return { isFilled: true, text: e.text, cursor: 0 }
+  })
+
+  await $.command.run({ command: 'enhance', args: 'làm gì đó', ...RUN_INPUT })
+
+  expect(filled).toBe('Câu đã viết lại')
+})
+
+test('the spinner and the turn line speak Vietnamese, one phrase per turn', async ($, on) => {
+  // Stands for the engine's own spinner: it draws the word it is handed.
+  on('ui.render', { component: 'Spinner' }, (_$, e) => {
+    const { Text } = _$.ui.resolve(e)
+    return <Text>{e.props.word}</Text>
+  })
+  const spin = (word: string, mode: 'thinking' | 'responding') =>
+    $.ui.mount({ plugin: 'acp-ui', surface: 'terminal', component: 'Spinner', props: { word, message: null, suffix: '…', mode } })
+
+  const a = await spin('Sauteing', 'responding')
+  const b = await spin('Sauteing', 'responding')
+  const thinking = await spin('Sauteing', 'thinking')
+  expect(await a.find({ type: 'Text', text: /^Đang / })).toBeDefined()
+  expect((await a.find({ type: 'Text', text: /^Đang / }))?.text).toBe((await b.find({ type: 'Text', text: /^Đang / }))?.text)
+  expect(await thinking.find({ type: 'Text', text: /Đang (suy nghĩ|vắt óc|ngẫm nghĩ|cân não|thiền|nghĩ kế)/ })).toBeDefined()
+
+  const done = await $.ui.mount({ plugin: 'acp-ui', surface: 'terminal', component: 'TurnDuration', props: { word: 'Baked', durationMs: 72000 } })
+  expect(await done.find({ type: 'Text', text: /trong 1m 12s/ })).toBeDefined()
+})
+
+test('/acp-theme lists themes, switches the palette and remembers the choice', async ($, on) => {
+  mock.store(on)
+  const run = (args: string) => $.command.run({ command: 'acp-theme', args, ...RUN_INPUT })
+
+  expect((await run('')).text).toContain('tokyo-night')
+  expect((await run('nope')).text).toContain('Không có bộ màu')
+  expect((await run('github-light')).text).toContain('GitHub Light')
+  expect((await run('')).text).toContain('`github-light`: GitHub Light (cho terminal nền sáng) ← đang dùng')
+
+  // A user card now paints with the light theme's widget color.
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'UserMessage',
+    props: { text: 'xin chào', origin: { kind: 'composer' }, isExpanded: false },
+  })
+  expect(await ui.find({ type: 'Text', text: /^▗▄+▖$/ })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: /^▗▄+▖$/ }))).toContain('#EAEEF2')
+  await run('spec-ade')
+})
+
+const BAND = {
+  plugin: 'acp-ui',
+  surface: 'terminal',
+  component: 'AbovePrompt',
+  props: { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 120, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+} as const
+
+test('a running subagent shows on the band until its last turn ends', async ($, on) => {
+  mock.clock(on)
+  on('session.cwd', () => ({ value: 'E:/repo' }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: 'master\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('agent.spawn', () => ({ model: 'claude-haiku-4-5', agentId: 'ag1' }))
+  on('turn.complete', () => ({ text: '' }))
+  // Stands for the engine's empty band, drawn when the mod has nothing to show.
+  on('ui.render', { component: 'AbovePrompt' }, (_$, e) => {
+    const { Box } = _$.ui.resolve(e)
+    return <Box />
+  })
+
+  await $.agent.spawn({
+    tool_use_id: 'tu_agent',
+    prompt: 'tìm file',
+    description: 'tìm file viewport',
+    subagentType: 'Explore',
+    provider: { plugin: 'engine', tier: 'core' },
+    parentModel: 'claude-opus-5-5',
+    background: true,
+    fork: false,
+  })
+  const running = await $.ui.mount(BAND)
+  expect(await running.find({ type: 'Text', text: /1 agent/ })).toBeDefined()
+  expect(await running.find({ type: 'Text', text: /Explore ◌/ })).toBeDefined()
+
+  await $.turn.complete({ reason: 'answer', answer: 'Tìm thấy 3 chỗ.', durationMs: 1000, isAborted: false, turnId: 't1', agentId: 'ag1' })
+  const done = await $.ui.mount(BAND)
+  expect(await done.find({ type: 'Text', text: /agent/ })).toBeUndefined()
+
+  // The Agent call's card now reads as finished, with the answer's first line.
+  const agentCard = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: { tool_use_id: 'tu_agent', tool: 'Agent', input: { description: 'tìm file viewport', prompt: '' }, isRunning: false, isErrored: false, isInterrupted: false },
+  })
+  expect(await agentCard.find({ type: 'Text', text: '✓' })).toBeDefined()
+  expect(await agentCard.find({ type: 'Text', text: 'Tìm thấy 3 chỗ.' })).toBeDefined()
+})
+
+test('an Agent call draws as a card with its type and task', async ($, on) => {
+  mock.clock(on)
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: {
+      tool_use_id: 'tu_agent',
+      tool: 'Agent',
+      input: { description: 'tìm chỗ xử lý DevTools', prompt: '...', subagent_type: 'Explore' },
+      isRunning: true,
+      isErrored: false,
+      isInterrupted: false,
+    },
+  })
+
+  expect(await ui.find({ type: 'Text', text: '◆' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Explore' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'tìm chỗ xử lý DevTools' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '◌' })).toBeDefined()
+})
+
+const WORKING_BAND = {
+  plugin: 'acp-ui',
+  surface: 'terminal',
+  component: 'AbovePrompt',
+  props: { hasSurvey: false, isWorking: true, maxRows: 12, bodyColumns: 80, scroll: { offset: 0, bodyRows: 12 }, view: {} },
+} as const
+
+test('while Claude works, the cat walks the band saying what it does', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call({ tool: 'Read', file_path: 'src/panel/viewport.ts' })
+
+  const ui = await $.ui.mount(WORKING_BAND)
+  expect(await ui.find({ type: 'Text', text: /Đang đọc src\/panel\/viewport\.ts/, in: 'scene' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /▀|▄/, in: 'scene' })).toBeDefined()
+})
+
+test('/play turns the band into the Né bug game, which ends on a hit and restarts on Space', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  const played = await $.command.run({ command: 'play', args: '', ...RUN_INPUT })
+  expect(played.text).toContain('Bật Né bug')
+
+  const ui = await $.ui.mount({ ...WORKING_BAND, props: { ...WORKING_BAND.props, isWorking: false } })
+  expect(await ui.find({ type: 'Text', text: /Né bug · 0 điểm/, in: 'scene' })).toBeDefined()
+  expect(await ui.find({ key: 'jump' })).toBeDefined()
+
+  // No jumping: the first bug reaches the cat and the round ends.
+  await ui.advance(12000)
+  expect(await ui.find({ type: 'Text', text: /Trúng bug!/, in: 'scene' })).toBeDefined()
+
+  await ui.key({ key: ' ', in: 'scene' })
+  expect(await ui.find({ type: 'Text', text: /Né bug · 0 điểm/, in: 'scene' })).toBeDefined()
+})
