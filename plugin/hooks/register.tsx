@@ -866,9 +866,11 @@ export const register: Register = on => {
     )
   })
 
-  // A folded run of reads and searches: a count line, then one card.
+  // A folded run of reads and searches: a count line, then one card. A group
+  // holding a tool this card cannot draw faithfully (another plugin's, an agent
+  // call) goes on down the chain, where that plugin or the engine draws it.
   on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, ($, e, next) => {
-    if (e.props.isExpanded) return next(e)
+    if (e.props.isExpanded || e.props.calls.some(call => !DRAWN_TOOLS.has(call.tool))) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     const width = cardWidth(e.viewport?.columns)
     const calls = e.props.calls

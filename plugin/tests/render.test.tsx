@@ -49,6 +49,47 @@ test('a folded group lists each call with its target', async $ => {
   expect(await ui.find({ type: 'Text', text: '◌' })).toBeDefined()
 })
 
+const quiet = { isRunning: false, isErrored: false, isInterrupted: false }
+
+test('a folded group with a tool acp-ui does not draw is passed down the chain', async ($, on) => {
+  on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>drawn further down</Text>
+  })
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolGroup',
+    props: {
+      calls: [
+        { tool: 'Read', input: { file_path: 'src/a.ts' }, ...quiet },
+        { tool: 'mcp__viber-context__codebase_retrieval', input: { information_request: 'q' }, ...quiet },
+      ],
+      isActive: false,
+      isExpanded: false,
+    },
+  })
+
+  expect(await ui.find({ type: 'Text', text: 'drawn further down' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /tool calls/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^▗▄+▖$/ })).toBeUndefined()
+})
+
+test('an expanded group is passed down the chain', async ($, on) => {
+  on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>drawn further down</Text>
+  })
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolGroup',
+    props: { calls: [{ tool: 'Read', input: { file_path: 'src/a.ts' }, ...quiet }], isActive: false, isExpanded: true },
+  })
+
+  expect(await ui.find({ type: 'Text', text: 'drawn further down' })).toBeDefined()
+})
+
 test('the person’s prompt draws as a card with its text', async $ => {
   const ui = await $.ui.mount({
     plugin: 'acp-ui',

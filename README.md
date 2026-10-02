@@ -61,6 +61,7 @@ Use one way or the other, not both: two copies load as two plugins of the same n
 - The test result is a guess: a Bash command naming `test`, `vitest`, `jest`, `pytest` or `playwright` counts as a test run, pass or fail by its exit status.
 - Edit diffs show the changed lines without file line numbers. Highlighting is a small per-line tokenizer, not a full grammar.
 - Hover and the fold toggle need the mouse, so they work in fullscreen only; on the main screen diffs show open, up to 10 lines.
+- A folded group that holds a tool this plugin does not draw (another plugin's tool, an agent call) is left to the next hook or the engine instead of getting the group card.
 - "think" on the timeline is a guess: a quiet gap of 3 s or more between tool calls.
 
 ## Develop
