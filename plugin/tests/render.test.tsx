@@ -308,8 +308,22 @@ test('while Claude works, the cat walks the band saying what it does', async ($,
   await $.tool.call({ tool: 'Read', file_path: 'src/panel/viewport.ts' })
 
   const ui = await $.ui.mount(WORKING_BAND)
+  // The bubble types its words out over a few frames.
+  await ui.advance(2000)
   expect(await ui.find({ type: 'Text', text: /Đang đọc src\/panel\/viewport\.ts/, in: 'scene' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /▀|▄/, in: 'scene' })).toBeDefined()
+})
+
+test('the scene keeps moving with no new tool call: the cat paces, the ground scrolls', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  const ui = await $.ui.mount(WORKING_BAND)
+  const frames = new Set<string>()
+  for (let i = 0; i < 6; i += 1) {
+    frames.add(JSON.stringify(await ui.drawn({ in: 'scene' })))
+    await ui.advance(210)
+  }
+  expect(frames.size).toBeGreaterThan(4)
 })
 
 test('/play turns the band into the Né bug game, which ends on a hit and restarts on Space', async ($, on) => {
