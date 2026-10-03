@@ -1,6 +1,6 @@
 {
   "name": "claude-acp-ui",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "A Claude Code mod that restyles the terminal like an ACP chat: prompt and tool cards, inline diffs, a status band, footer stats and a /dash pane",
   "type": "module",
   "bin": {

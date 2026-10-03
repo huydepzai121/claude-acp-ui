@@ -1,6 +1,6 @@
 {
   "name": "acp-ui",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "Restyles the Claude Code terminal like an ACP chat: prompt and tool cards, inline diffs, a status band, footer stats, a /dash pane and a done toast",
   "author": { "name": "Nguyễn Thế Huy" },
   "license": "MIT",
