@@ -42,11 +42,13 @@ test('a folded group lists each call with its target', async $ => {
     },
   })
 
-  expect(await ui.find({ type: 'Text', text: /2 tool calls/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /2 lệnh/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '"devtools"' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: ' trong src' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^▗▄+▖$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^╭/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '◌' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /tool calls/ })).toBeUndefined()
 })
 
 const quiet = { isRunning: false, isErrored: false, isInterrupted: false }
@@ -71,8 +73,8 @@ test('a folded group with a tool acp-ui does not draw is passed down the chain',
   })
 
   expect(await ui.find({ type: 'Text', text: 'drawn further down' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /tool calls/ })).toBeUndefined()
-  expect(await ui.find({ type: 'Text', text: /^▗▄+▖$/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /lệnh/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
 })
 
 test('an expanded group is passed down the chain', async ($, on) => {
@@ -151,7 +153,7 @@ test('diff lines are highlighted: keyword, function, number, string, comment', a
   expect(await ui.find({ type: 'Text', text: '42' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '"x"' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '// old' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '✎' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '✎' })).toBeUndefined()
 })
 
 test('in fullscreen a long diff folds behind a toggle that opens it', async $ => {
@@ -166,6 +168,160 @@ test('in fullscreen a long diff folds behind a toggle that opens it', async $ =>
   expect(await ui.find({ type: 'Text', text: 'getViewportHeight' })).toBeUndefined()
   await ui.press({ key: 'fold-tu_long' })
   expect(await ui.find({ type: 'Text', text: 'getViewportHeight' })).toBeDefined()
+})
+
+const bashRow = (output: unknown, extra: Record<string, unknown> = {}) => ({
+  tool_use_id: 'tu_bash',
+  tool: 'Bash',
+  input: { command: 'npm test -- session-model' },
+  isRunning: false,
+  isErrored: false,
+  isInterrupted: false,
+  output,
+  ...extra,
+})
+
+test('a Bash row is drawn in a rounded frame, with no kind icon and no filled edges', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: bashRow({ stdout: 'one\ntwo\n\nlast line\n', stderr: '' }),
+  })
+
+  expect(await ui.find({ type: 'Text', text: /^╭/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '│' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'npm test -- session-model' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '❯' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^▗/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^▝/ })).toBeUndefined()
+})
+
+test('a Bash row summarizes its output as a line count, not its last line', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: bashRow({ stdout: 'one\ntwo\n\nlast line\n', stderr: '' }),
+  })
+
+  expect(await ui.find({ type: 'Text', text: '3 dòng' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'last line' })).toBeUndefined()
+})
+
+test('a failed Bash row shows the last error line and a red frame', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: bashRow({ stdout: '', stderr: 'npm ERR! failed\nexpected sonnet to equal opus\n' }, { isErrored: true }),
+  })
+
+  expect(await ui.find({ type: 'Text', text: '└ ' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'expected sonnet to equal opus' })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: /^╭─+╮$/ }))).toContain('#F87C88')
+
+  const fine = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: bashRow({ stdout: 'ok', stderr: '' }),
+  })
+  expect(JSON.stringify(await fine.find({ type: 'Text', text: /^╭─+╮$/ }))).toContain('#5B6B8C')
+})
+
+const FULLSCREEN = { columns: 120, rows: 40, isFullscreen: true }
+
+const readRow = (id: string, file: string, extra: Record<string, unknown> = {}) => ({
+  plugin: 'acp-ui',
+  surface: 'terminal' as const,
+  component: 'ToolUse' as const,
+  viewport: FULLSCREEN,
+  props: {
+    tool_use_id: id,
+    tool: 'Read',
+    input: { file_path: file },
+    isRunning: false,
+    isErrored: false,
+    isInterrupted: false,
+    output: { file: { numLines: 12 } },
+    ...extra,
+  },
+})
+
+// The model's text between tool calls: a `turn.step` whose answer is not empty.
+function stepper($: any, on: any): (answer: string) => Promise<void> {
+  let said = ''
+  on('turn.step', async function* () {
+    return { turnId: 't1', index: 0, answer: said, toolUses: [], stopReason: 'end_turn', usage: null }
+  })
+
+  return async answer => {
+    said = answer
+    for await (const _ of $.turn.step({ turnId: 't1', index: 0, model: 'claude-opus-5-5', messageCount: 1 })) {
+      // The chunks are not needed; the step's result is what ends the run.
+    }
+  }
+}
+
+test('in fullscreen consecutive calls share one frame; text between them splits it', async ($, on) => {
+  mock.clock(on)
+  const say = stepper($, on)
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call({ tool: 'Read', file_path: 'src/a.ts', tool_use_id: 'u1' })
+  await $.tool.call({ tool: 'Read', file_path: 'src/b.ts', tool_use_id: 'u2' })
+
+  const first = await $.ui.mount(readRow('u1', 'src/a.ts'))
+  const last = await $.ui.mount(readRow('u2', 'src/b.ts'))
+  expect(await first.find({ type: 'Text', text: /^╭/ })).toBeDefined()
+  expect(await first.find({ type: 'Text', text: /2 lệnh/ })).toBeDefined()
+  expect(await first.find({ type: 'Text', text: /^╰/ })).toBeUndefined()
+  expect(await last.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
+  expect(await last.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+
+  await say('Đã đọc xong, giờ tìm tiếp.')
+  await $.tool.call({ tool: 'Read', file_path: 'src/c.ts', tool_use_id: 'u3' })
+  const after = await $.ui.mount(readRow('u3', 'src/c.ts'))
+  expect(await after.find({ type: 'Text', text: /^╭/ })).toBeDefined()
+  expect(await after.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+  expect(await $.ui.mount(readRow('u2', 'src/b.ts')).then(ui => ui.find({ type: 'Text', text: /^╰─+╯$/ }))).toBeDefined()
+})
+
+test('a finished run of four calls folds into its border and opens on demand', async ($, on) => {
+  mock.clock(on)
+  const say = stepper($, on)
+  on('tool.call', () => ({ result: 'ok' }))
+  const files = ['a', 'b', 'c', 'd']
+  for (const f of files) await $.tool.call({ tool: 'Read', file_path: `src/${f}.ts`, tool_use_id: `c_${f}` })
+  await say('Xong phần đọc.')
+
+  const rows = await Promise.all(files.map(f => $.ui.mount(readRow(`c_${f}`, `src/${f}.ts`))))
+  const [head, second] = rows as [(typeof rows)[number], (typeof rows)[number]]
+  expect(await head.find({ type: 'Text', text: /4 lệnh/ })).toBeDefined()
+  expect(await head.find({ text: /mở rộng/ })).toBeDefined()
+  expect(await head.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+  expect(await head.find({ type: 'Text', text: 'src/a.ts' })).toBeUndefined()
+  expect(await second.find({ type: 'Text', text: 'src/b.ts' })).toBeUndefined()
+
+  await head.press({ key: 'fold-run:c_a' })
+  expect(await head.find({ text: /thu gọn/ })).toBeDefined()
+  expect(await head.find({ type: 'Text', text: 'src/a.ts' })).toBeDefined()
+  expect(await second.find({ type: 'Text', text: 'src/b.ts' })).toBeDefined()
+})
+
+test('a run with a failed call does not fold', async ($, on) => {
+  mock.clock(on)
+  const say = stepper($, on)
+  on('tool.call', (_$, e) => (e.tool_use_id === 'f_c' ? { deny: 'bị từ chối' } : { result: 'ok' }))
+  const files = ['a', 'b', 'c', 'd']
+  for (const f of files) await $.tool.call({ tool: 'Read', file_path: `src/${f}.ts`, tool_use_id: `f_${f}` })
+  await say('Có một lệnh lỗi.')
+
+  const head = await $.ui.mount(readRow('f_a', 'src/a.ts'))
+  expect(await head.find({ type: 'Text', text: 'src/a.ts' })).toBeDefined()
+  expect(await head.find({ text: /mở rộng/ })).toBeUndefined()
+  expect(JSON.stringify(await head.find({ type: 'Text', text: /^╭/ }))).toContain('#F87C88')
 })
 
 test('the pane draws a timeline and an activity chart from tool calls', async ($, on) => {
@@ -383,4 +539,112 @@ test('/play turns the band into the Né bug game, which ends on a hit and restar
 
   await ui.key({ key: ' ', in: 'scene' })
   expect(await ui.find({ type: 'Text', text: /Né bug · 0 điểm/, in: 'scene' })).toBeDefined()
+})
+
+const RETRIEVAL = 'mcp__viber-context__codebase_retrieval'
+
+// Stands for the plugin that draws the tool's own header and result.
+function drawForeign(on: Parameters<Parameters<typeof test>[1]>[1]) {
+  on('ui.render', { component: 'ToolUse', surface: 'terminal' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>◎ Retrieval header</Text>
+  })
+  on('ui.render', { component: 'ToolResult', surface: 'terminal' }, ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        <Text>README.md#L72-76</Text>
+        <Text>+4 more</Text>
+      </Box>
+    )
+  })
+}
+
+const foreignUse = (state: Record<string, unknown>) => ({
+  plugin: 'acp-ui',
+  surface: 'terminal' as const,
+  component: 'ToolUse' as const,
+  props: { tool_use_id: 'tu_f', tool: RETRIEVAL, input: { information_request: 'q' }, ...quiet, ...state },
+})
+
+test('a finished foreign tool draws its header and result in one frame', async ($, on) => {
+  drawForeign(on)
+  const use = await $.ui.mount(foreignUse({ output: { chunks: 8 } }))
+  const result = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolResult',
+    props: { tool_use_id: 'tu_f', tool: RETRIEVAL, output: { chunks: 8 }, isErrored: false },
+  })
+
+  // The row opens the frame and leaves it open; the result block closes it.
+  expect(await use.find({ type: 'Text', text: /^╭─+╮$/ })).toBeDefined()
+  expect(await use.find({ type: 'Text', text: '◎ Retrieval header' })).toBeDefined()
+  expect(await use.find({ type: 'Text', text: /^│/ })).toBeDefined()
+  expect(await use.find({ type: 'Text', text: /^╰/ })).toBeUndefined()
+  expect(await result.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
+  expect(await result.find({ type: 'Text', text: 'README.md#L72-76' })).toBeDefined()
+  expect(await result.find({ type: 'Text', text: '+4 more' })).toBeDefined()
+  expect(await result.find({ type: 'Text', text: /^│/ })).toBeDefined()
+  expect(await result.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+})
+
+test('a running foreign tool closes its own frame, in the accent colour', async ($, on) => {
+  drawForeign(on)
+  const use = await $.ui.mount(foreignUse({ isRunning: true }))
+
+  expect(await use.find({ type: 'Text', text: /^╭─+╮$/ })).toBeDefined()
+  expect(await use.find({ type: 'Text', text: '◎ Retrieval header' })).toBeDefined()
+  expect(await use.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+  const top = await use.find({ type: 'Text', text: /^╭─+╮$/ })
+  const bottom = await use.find({ type: 'Text', text: /^╰─+╯$/ })
+  expect(bottom?.props?.color).toBe(top?.props?.color)
+  const done = await (await $.ui.mount(foreignUse({ output: {} }))).find({ type: 'Text', text: /^╭─+╮$/ })
+  expect(top?.props?.color).not.toBe(done?.props?.color)
+})
+
+test('a failed foreign tool draws a red frame, closed by its result', async ($, on) => {
+  drawForeign(on)
+  const use = await $.ui.mount(foreignUse({ isErrored: true, output: 'boom' }))
+  const result = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolResult',
+    props: { tool_use_id: 'tu_f', tool: RETRIEVAL, output: 'boom', isErrored: true },
+  })
+
+  const top = await use.find({ type: 'Text', text: /^╭─+╮$/ })
+  const bottom = await result.find({ type: 'Text', text: /^╰─+╯$/ })
+  const ok = await (await $.ui.mount(foreignUse({ output: {} }))).find({ type: 'Text', text: /^╭─+╮$/ })
+  expect(bottom?.props?.color).toBe(top?.props?.color)
+  expect(top?.props?.color).not.toBe(ok?.props?.color)
+})
+
+test('a foreign tool in an expanded group closes its frame in the row', async ($, on) => {
+  drawForeign(on)
+  on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine rows</Text>
+  })
+  await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolGroup',
+    props: {
+      calls: [{ tool_use_id: 'tu_f', tool: RETRIEVAL, input: {}, ...quiet, output: { chunks: 1 } }],
+      isActive: false,
+      isExpanded: true,
+    },
+  })
+  const use = await $.ui.mount(foreignUse({ output: { chunks: 1 } }))
+
+  expect(await use.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+})
+
+test('a tool the mod neither draws nor frames keeps the engine row', async ($, on) => {
+  drawForeign(on)
+  const use = await $.ui.mount({ ...foreignUse({ output: {} }), props: { tool_use_id: 'tu_t', tool: 'TodoWrite', input: {}, ...quiet, output: {} } })
+
+  expect(await use.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
+  expect(await use.find({ type: 'Text', text: '◎ Retrieval header' })).toBeDefined()
 })

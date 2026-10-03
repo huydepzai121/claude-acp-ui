@@ -15,8 +15,14 @@ export type Footer = { test: 'pass' | 'fail' | null; minutes: number; usd: numbe
 
 export type Stats = { total: number; tools: Record<string, number> }
 
-// When a tool call started (clock ms) and how long it ran, by tool_use_id.
-export type Timing = { startedAt: number; ms: number | null }
+// When a tool call started (clock ms) and how long it ran, by tool_use_id;
+// `isErrored` is set once the call ends in an error or a refusal.
+export type Timing = { startedAt: number; ms: number | null; isErrored?: boolean }
+
+// The main loop's tool calls grouped into runs, so consecutive rows share one
+// frame: the open run's id (empty when the next call starts a new one), each
+// call's run, and each run's calls in order.
+export type ToolRuns = { current: string; byId: Record<string, string>; order: Record<string, string[]> }
 
 // What Claude did, in order: one entry per tool call, `think` for a quiet gap.
 export type Beat = 'think' | 'read' | 'search' | 'edit' | 'run' | 'other'
@@ -58,7 +64,9 @@ declare module 'claude-code' {
       footer: Footer | null
       stats: Stats
       timings: Record<string, Timing>
+      // Folded/unfolded state by tool_use_id (a diff) or run id (a whole run).
       expanded: Record<string, boolean>
+      toolRuns: ToolRuns
       beats: Beat[]
       // Tool calls per clock minute (minute index → count).
       activity: Record<string, number>

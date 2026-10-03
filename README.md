@@ -3,9 +3,9 @@
 A [Claude Code](https://code.claude.com) mod that restyles the terminal like an ACP chat (the look of spec-ade's agent panel), using only what a terminal can draw: colored cells, block characters, one monospace font.
 
 - **Prompt card**: your message sits in a filled card with `›`.
-- **Tool cards**: each call is a card with a status icon (`✓ ◌ ✗ ■`), a kind icon (`◇` read, `⌕` search, `✎` edit, `❯` run), the tool, its target and a right-aligned summary (`142 dòng`, `4 file`, `24 passed`). Running calls turn blue.
-- **Inline diffs**: Edit / MultiEdit cards show the changed lines on red and green rows, syntax-highlighted, `−N +N` at the edge. In fullscreen a diff over 4 lines folds behind `▸ diff`.
-- **Hover cards** (fullscreen): hover a tool card for the full command, how long it ran and its last output lines; hover a changed file in `/dash` for its first changed lines.
+- **Tool frames**: tool calls draw in a full-width rounded frame (`╭─╮ │ ╰─╯`) with no filled block. Consecutive calls share one frame, a row each: status (`✓ ◌ ✗ ■`), the tool, its target and a right-aligned summary (`142 dòng`, `4 file`, `24 passed`, a shell command's output as `N dòng`) with how long it took. The top border says `N lệnh · time`. The border takes the state's colour (blue while a call runs, red after a failure, grey-blue otherwise); a running row is filled blue, and a failed shell row adds a `└` line with the last error line. In fullscreen a finished run of 4 or more clean calls folds behind `▸ mở rộng`; text from Claude between calls starts a new frame. On the main screen rows cannot redraw, so each call is its own frame. A tool from another plugin or an MCP server (`mcp__…`) keeps its own header and result but draws inside the same frame, one per call, never grouped.
+- **Inline diffs**: Edit / MultiEdit rows show the changed lines on red and green rows, syntax-highlighted, `−N +N` at the edge. In fullscreen a diff over 4 lines folds behind `▸ diff`.
+- **Hover cards** (fullscreen): hover a tool row for the full command, how long it ran and its last output lines; hover a changed file in `/dash` for its first changed lines.
 - **Subagent cards**: an Agent call draws as a live card: `◌ ◆ Explore  find the viewport code  6 tool · 12s`, its last three steps under it while it runs, then `✓` with the files it read and edited and the first line of its answer. In fullscreen, hover it for every step and the head of the answer. A toast says when each subagent finishes.
 - **Status band** above the prompt: branch, changed-file count, running subagents (`◆ 2 agent: Explore ◌ · Plan ◌`), model, context bar.
 - **Footer**: test result, session minutes and cost after the hint line.
@@ -17,7 +17,7 @@ A [Claude Code](https://code.claude.com) mod that restyles the terminal like an 
 - **Né bug** (`/play`): a jump-over-the-bugs game in the same band while you wait. Focus the band with `Ctrl+X` then `Tab` and press `j` to jump (`q` quits); in fullscreen, click the scene and use `Space`. The round ends with the turn, and the best score is kept.
 - **Toast** when a turn of 15 s or more finishes.
 
-Cards get half a row of padding and corners cut by half a cell from quadrant blocks (`▗▄▖`, `▝▀▘`); bars fill in eighths of a cell.
+The prompt and subagent cards get half a row of padding and corners cut by half a cell from quadrant blocks (`▗▄▖`, `▝▀▘`); bars fill in eighths of a cell.
 
 ## Install
 
@@ -62,6 +62,7 @@ Use one way or the other, not both: two copies load as two plugins of the same n
 - Edit diffs show the changed lines without file line numbers. Highlighting is a small per-line tokenizer, not a full grammar.
 - Hover and the fold toggle need the mouse, so they work in fullscreen only; on the main screen diffs show open, up to 10 lines.
 - A folded group that holds a tool this plugin does not draw (another plugin's tool, an agent call) is left to the next hook or the engine instead of getting the group card.
+- A framed MCP tool's result block closes its frame; a call shown with no separate result block (an expanded group) closes it in the row, and an interrupted call's result bar takes the normal frame colour. Side bars are a column of `│` sized to the block, so a result block taller than 400 rows loses them below that.
 - "think" on the timeline is a guess: a quiet gap of 3 s or more between tool calls.
 
 ## Develop

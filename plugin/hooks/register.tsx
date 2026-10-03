@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { BoxProps, ElementConstructor, EngineInterface, Register, RenderElement, TextProps, Timer } from 'claude-code'
 
-import type { AgentRun, AgentStep, Band, Beat, FileChange, Footer, Git, Scene, Stats, Timing } from '../types'
+import type { AgentRun, AgentStep, Band, Beat, FileChange, Footer, Git, Scene, Stats, Timing, ToolRuns } from '../types'
 import type { SceneProps } from './scene'
 
 type TextEl = ElementConstructor<TextProps>
@@ -12,7 +12,7 @@ type BoxEl = ElementConstructor<BoxProps>
 // switching a theme copies another palette into them and redraws.
 
 type Palette = {
-  widget: string; snippet: string; running: string; pill: string; popup: string; track: string
+  widget: string; snippet: string; running: string; pill: string; popup: string; track: string; frame: string; redDim: string
   text: string; soft: string; dim: string; faint: string; rule: string
   accent: string; green: string; red: string; blue: string; yellow: string; orange: string; violet: string; cyan: string
   addBg: string; delBg: string; tagBlueBg: string; tagBlueFg: string; tagYellowBg: string; tagYellowFg: string
@@ -25,7 +25,7 @@ const THEMES: Record<string, Theme> = {
   'spec-ade': {
     label: 'spec-ade (mặc định, nền tối)',
     c: {
-      widget: '#303135', snippet: '#27282B', running: '#1B2A40', pill: '#3A3B3F', popup: '#3A3B3F', track: '#55565A',
+      widget: '#303135', snippet: '#27282B', running: '#1B2A40', pill: '#3A3B3F', popup: '#3A3B3F', track: '#55565A', frame: '#5B6B8C', redDim: '#B8626D',
       text: '#E0E1E4', soft: '#C3C5C9', dim: '#909192', faint: '#696A6B', rule: '#3A3A3A',
       accent: '#4B8DEC', green: '#69B090', red: '#F87C88', blue: '#71A3EF', yellow: '#E5BF8C', orange: '#E09B70', violet: '#AF9CFF', cyan: '#82D2CE',
       addBg: '#2C3B36', delBg: '#493135', tagBlueBg: '#10447F', tagBlueFg: '#D6E3F9', tagYellowBg: '#5C4014', tagYellowFg: '#F5DEC2',
@@ -35,7 +35,7 @@ const THEMES: Record<string, Theme> = {
   'tokyo-night': {
     label: 'Tokyo Night (nền tối xanh)',
     c: {
-      widget: '#292E42', snippet: '#1F2335', running: '#23345C', pill: '#2F3549', popup: '#2F3549', track: '#3B4261',
+      widget: '#292E42', snippet: '#1F2335', running: '#23345C', pill: '#2F3549', popup: '#2F3549', track: '#3B4261', frame: '#4A5578', redDim: '#B5586C',
       text: '#C0CAF5', soft: '#A9B1D6', dim: '#8189B0', faint: '#565F89', rule: '#2F3549',
       accent: '#7AA2F7', green: '#9ECE6A', red: '#F7768E', blue: '#7AA2F7', yellow: '#E0AF68', orange: '#FF9E64', violet: '#BB9AF7', cyan: '#7DCFFF',
       addBg: '#243B35', delBg: '#45283A', tagBlueBg: '#2A4B8D', tagBlueFg: '#D5E2FF', tagYellowBg: '#5A4320', tagYellowFg: '#F4DDB8',
@@ -45,7 +45,7 @@ const THEMES: Record<string, Theme> = {
   dracula: {
     label: 'Dracula (nền tối tím)',
     c: {
-      widget: '#44475A', snippet: '#343746', running: '#2E3A5C', pill: '#4A4D60', popup: '#4A4D60', track: '#5B5F78',
+      widget: '#44475A', snippet: '#343746', running: '#2E3A5C', pill: '#4A4D60', popup: '#4A4D60', track: '#5B5F78', frame: '#6272A4', redDim: '#C25B63',
       text: '#F8F8F2', soft: '#E2E2DC', dim: '#A6ACCD', faint: '#7A80A8', rule: '#44475A',
       accent: '#BD93F9', green: '#50FA7B', red: '#FF5555', blue: '#8BE9FD', yellow: '#F1FA8C', orange: '#FFB86C', violet: '#FF79C6', cyan: '#8BE9FD',
       addBg: '#2F4A3A', delBg: '#5A2E38', tagBlueBg: '#5A4A8A', tagBlueFg: '#F0E8FF', tagYellowBg: '#6A5A2A', tagYellowFg: '#FFF6C8',
@@ -55,7 +55,7 @@ const THEMES: Record<string, Theme> = {
   catppuccin: {
     label: 'Catppuccin Mocha (nền tối dịu)',
     c: {
-      widget: '#313244', snippet: '#26273A', running: '#283457', pill: '#3B3D52', popup: '#3B3D52', track: '#585B70',
+      widget: '#313244', snippet: '#26273A', running: '#283457', pill: '#3B3D52', popup: '#3B3D52', track: '#585B70', frame: '#6B7396', redDim: '#B96C82',
       text: '#CDD6F4', soft: '#BAC2DE', dim: '#9399B2', faint: '#6C7086', rule: '#313244',
       accent: '#89B4FA', green: '#A6E3A1', red: '#F38BA8', blue: '#89B4FA', yellow: '#F9E2AF', orange: '#FAB387', violet: '#CBA6F7', cyan: '#94E2D5',
       addBg: '#2E3F3A', delBg: '#4A2F3D', tagBlueBg: '#34507F', tagBlueFg: '#DCE7FF', tagYellowBg: '#5E5032', tagYellowFg: '#FBEFD2',
@@ -65,7 +65,7 @@ const THEMES: Record<string, Theme> = {
   'github-light': {
     label: 'GitHub Light (cho terminal nền sáng)',
     c: {
-      widget: '#EAEEF2', snippet: '#F3F4F6', running: '#DDF4FF', pill: '#E6EAEF', popup: '#E6EAEF', track: '#C9D1D9',
+      widget: '#EAEEF2', snippet: '#F3F4F6', running: '#DDF4FF', pill: '#E6EAEF', popup: '#E6EAEF', track: '#C9D1D9', frame: '#6E7B91', redDim: '#A5343C',
       text: '#1F2328', soft: '#424A53', dim: '#59636E', faint: '#818B98', rule: '#D0D7DE',
       accent: '#0969DA', green: '#1A7F37', red: '#CF222E', blue: '#0969DA', yellow: '#9A6700', orange: '#BC4C00', violet: '#8250DF', cyan: '#1B7C83',
       addBg: '#DAFBE1', delBg: '#FFEBE9', tagBlueBg: '#DDF4FF', tagBlueFg: '#0550AE', tagYellowBg: '#FFF8C5', tagYellowFg: '#7D4E00',
@@ -90,6 +90,7 @@ const applyTheme = (name: string): boolean => {
 const DASH = 'acp-dash'
 const DIFF_LINES = 10
 const FOLD_OVER = 4
+const FOLD_RUN = 4
 const THINK_GAP_MS = 3000
 const TEST_COMMAND = /\b(test|vitest|jest|pytest|playwright)\b/
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit'])
@@ -129,6 +130,7 @@ const footer = atom({ plugin: 'acp-ui', key: 'footer' } as const, null)
 const stats = atom({ plugin: 'acp-ui', key: 'stats' } as const, { total: 0, tools: {} })
 const timings = atom({ plugin: 'acp-ui', key: 'timings' } as const, {})
 const expanded = atom({ plugin: 'acp-ui', key: 'expanded' } as const, {})
+const toolRuns = atom({ plugin: 'acp-ui', key: 'toolRuns' } as const, { current: '', byId: {}, order: {} })
 const beats = atom({ plugin: 'acp-ui', key: 'beats' } as const, [])
 const activity = atom({ plugin: 'acp-ui', key: 'activity' } as const, {})
 const agents = atom({ plugin: 'acp-ui', key: 'agents' } as const, {})
@@ -141,7 +143,35 @@ const SCENE_KEY = 'scene'
 const BEST_KEY = 'nebug-best'
 const SCENE_ROWS = 5
 
+const RUN_KEEP = 200
+
+// Calls whose row an expanded group draws with the result inline: no separate
+// result block follows them, so their frame closes in the row itself.
+const inlineRows = new Set<string>()
+
+// The next call joins the open run, or starts one named after its own id.
+// The oldest runs go once more than RUN_KEEP calls are kept.
+function joinRun(runs: ToolRuns, id: string): ToolRuns {
+  const current = runs.current !== '' ? runs.current : `run:${id}`
+  let order = { ...runs.order, [current]: [...(runs.order[current] ?? []), id] }
+  let kept = Object.values(order).reduce((n, ids) => n + ids.length, 0)
+  for (const key of Object.keys(order)) {
+    if (kept <= RUN_KEEP || key === current) break
+    kept -= order[key]?.length ?? 0
+    order = Object.fromEntries(Object.entries(order).filter(([k]) => k !== key))
+  }
+  const byId = Object.fromEntries(Object.entries(order).flatMap(([run, ids]) => ids.map(one => [one, run] as const)))
+
+  return { current, byId, order }
+}
+
+const endRun = (runs: ToolRuns): ToolRuns => (runs.current === '' ? runs : { ...runs, current: '' })
+
 const AGENT_TOOLS = new Set(['Agent', 'Task'])
+// A tool another plugin or an MCP server provides. The built-in ones this mod
+// does not draw (a todo list, a plan) keep the engine's own rows, which carry
+// no result block to close a frame.
+const isForeign = (tool: string): boolean => tool.startsWith('mcp__')
 const isRunning = (run: AgentRun): boolean => run.endedAt === null
 const firstLine = (text: string): string => lines(text.trim()).find(l => l.trim() !== '')?.trim() ?? ''
 
@@ -225,6 +255,9 @@ function fitSegs(segs: Seg[], max: number): Seg[] {
 
 const cardWidth = (columns: number | undefined): number => Math.max(40, Math.min((columns ?? 100) - 4, 120))
 
+// A tool frame spans the terminal, less a cell each side.
+const frameWidth = (columns: number | undefined): number => Math.max(40, (columns ?? 100) - 2)
+
 function hardWrap(text: string, max: number): string[] {
   const chars = [...text]
   if (chars.length <= max) return [text]
@@ -295,7 +328,7 @@ function highlight(code: string, path: string): Seg[] {
 
 // ---------------------------------------------------------------------------
 
-function paint(Text: TextEl, bg: string, width: number, segs: Seg[]): RenderElement {
+function paint(Text: TextEl, bg: string | undefined, width: number, segs: Seg[]): RenderElement {
   const used = 1 + segCells(segs)
 
   return (
@@ -375,8 +408,8 @@ function outputSummary(tool: string, output: unknown): Seg[] {
     if (failed) return [{ text: `${failed[1]} failed`, color: C.red }]
     const passed = /(\d+) passed/.exec(all)
     if (passed) return [{ text: `${passed[1]} passed`, color: C.green }]
-    const last = lines(str(out.stdout).trim()).at(-1) ?? ''
-    return last === '' ? [] : [{ text: fit(last, 40), color: C.dim }]
+    const count = lines(str(out.stdout)).filter(l => l.trim() !== '').length
+    return count === 0 ? [] : [{ text: `${count} dòng`, color: C.dim }]
   }
 
   return []
@@ -389,33 +422,157 @@ function summaryOf(tool: string, s: Status & { output?: unknown }): Seg[] {
   return outputSummary(tool, s.output)
 }
 
-// One tool row: status, kind icon, tool name, target, right-aligned summary.
-function toolRow(Text: TextEl, bg: string, width: number, status: Seg, tool: string, goal: Seg[], right: Seg[]): RenderElement {
-  const icon = iconOf(kindOf(tool))
-  const rightCells = segCells(right)
-  const fixed = 1 + 2 + 2 + cells(tool) + 2 + (rightCells > 0 ? rightCells + 2 : 0) + 1
-  const shown = fitSegs(goal, Math.max(8, width - fixed))
-  const gap = Math.max(2, width - fixed - segCells(shown) + 2)
+// The right side of a row: the summary, then how long the call took.
+function rowRight(tool: string, s: Status & { output?: unknown }, ms: number | null): Seg[] {
+  const summary = summaryOf(tool, s)
+  const took: Seg[] = !s.isRunning && ms !== null ? [{ text: seconds(ms), color: C.faint }] : []
 
-  return paint(Text, bg, width, [
-    status,
-    { text: ' ' },
-    icon,
-    { text: ' ' },
-    { text: tool, color: C.dim },
+  return summary.length > 0 && took.length > 0 ? [...summary, { text: ' · ', color: C.faint }, ...took] : [...summary, ...took]
+}
+
+// The last non-empty line a failed call printed: stderr, else stdout; a
+// refusal or error text arrives as a plain string.
+function errorLine(output: unknown): string {
+  const last = (text: string): string =>
+    lines(text).map(l => l.trim()).filter(l => l !== '').at(-1) ?? ''
+  if (typeof output === 'string') return last(output)
+  const out = fields(output)
+
+  return last(str(out.stderr)) || last(str(out.stdout))
+}
+
+// ---------------------------------------------------------------------------
+// Tool frames: a rounded border in the colour of the calls' state, no fill. A
+// run of calls shares one frame; each row is `│` + content + `│`.
+
+const NAME_COL = 10
+// Cells before a row's target: space, status, two gaps, the name column, a gap.
+const TARGET_COL = 1 + 1 + 2 + NAME_COL + 2
+
+// One status for several calls: running if any runs, failed if any failed,
+// interrupted only when all were.
+const mergeStatus = (list: Status[]): Status => ({
+  isRunning: list.some(s => s.isRunning),
+  isErrored: list.some(s => s.isErrored),
+  isInterrupted: list.length > 0 && list.every(s => s.isInterrupted),
+})
+
+const frameColor = (s: Status): string =>
+  s.isRunning ? C.accent : s.isErrored ? C.red : s.isInterrupted ? C.faint : C.frame
+
+// What the top border says: the state mark and, for several calls, how many;
+// then the time the finished ones took. A lone call with no time known has none.
+function frameLabel(list: Status[], finished: number[]): Seg[] {
+  const mark = statusOf(mergeStatus(list))
+  const time: Seg[] = finished.length > 0 ? [{ text: seconds(finished.reduce((a, b) => a + b, 0)), color: C.faint }] : []
+  if (list.length > 1) {
+    return [mark, { text: ` ${list.length} lệnh`, color: C.soft }, ...(time.length > 0 ? [{ text: ' · ', color: C.faint }, ...time] : [])]
+  }
+
+  return time.length > 0 ? [mark, { text: ' ' }, ...time] : []
+}
+
+type Tail = { cells: number; node: RenderElement }
+
+function borderTop(Box: BoxEl, Text: TextEl, color: string, width: number, label: Seg[], tail?: Tail): RenderElement {
+  if (label.length === 0) return <Text color={color}>{`╭${'─'.repeat(Math.max(0, width - 2))}╮`}</Text>
+  const head: Seg[] = [{ text: '╭─ ', color }, ...label, { text: ' ' }]
+  const fill = '─'.repeat(Math.max(1, width - segCells(head) - (tail ? tail.cells + 3 : 0) - 1))
+  const lead = head.map(s => (
+    <Text color={s.color} bold={s.bold}>{s.text}</Text>
+  ))
+  if (!tail) {
+    return (
+      <Text>
+        {lead}
+        <Text color={color}>{`${fill}╮`}</Text>
+      </Text>
+    )
+  }
+
+  return (
+    <Box>
+      <Text>
+        {lead}
+        <Text color={color}>{`${fill} `}</Text>
+      </Text>
+      {tail.node}
+      <Text color={color}>{' ─╮'}</Text>
+    </Box>
+  )
+}
+
+const borderBottom = (Text: TextEl, color: string, width: number): RenderElement => (
+  <Text color={color}>{`╰${'─'.repeat(Math.max(0, width - 2))}╯`}</Text>
+)
+
+// A content row between the side borders; `parts` fill the width inside them.
+const framed = (Box: BoxEl, Text: TextEl, color: string, parts: RenderElement[]): RenderElement => (
+  <Box>
+    <Text color={color}>│</Text>
+    {parts}
+    <Text color={color}>│</Text>
+  </Box>
+)
+
+// Side bars of a tall block: a column of `│` drawn absolute, spanning the block
+// whatever its height, clipped to it. Taller than any result block there is.
+const BAR_ROWS = 400
+const BAR_COLUMN = Array.from({ length: BAR_ROWS }, () => '│').join('\n')
+
+// Another plugin's (or the engine's) tree between side bars of unknown height,
+// with the top border and the bottom border each drawn or left to the other
+// half of the frame: a call's header opens it, its result closes it.
+function enclosed(Box: BoxEl, Text: TextEl, color: string, width: number, tree: RenderElement, edges: { top: boolean; bottom: boolean }): RenderElement {
+  const bar = (side: 'left' | 'right'): RenderElement => (
+    <Box position="absolute" top={0} bottom={0} width={1} overflow="hidden" {...(side === 'left' ? { left: 0 } : { right: 0 })}>
+      <Text color={color}>{BAR_COLUMN}</Text>
+    </Box>
+  )
+
+  return (
+    <Box flexDirection="column" marginTop={edges.top ? 1 : 0}>
+      {edges.top ? borderTop(Box, Text, color, width, []) : null}
+      <Box flexDirection="column" width={width} paddingX={1} overflow="hidden">
+        {bar('left')}
+        {bar('right')}
+        {tree}
+      </Box>
+      {edges.bottom ? borderBottom(Text, color, width) : null}
+    </Box>
+  )
+}
+
+// One call: status, tool name, target, right-aligned summary. A running call's
+// row is filled, so it stands out in the frame.
+function callRow(Text: TextEl, width: number, status: Status, tool: string, goal: Seg[], right: Seg[]): RenderElement {
+  const rightCells = segCells(right)
+  const room = width - TARGET_COL - 1
+  const shown = fitSegs(goal, Math.max(8, room - (rightCells > 0 ? rightCells + 2 : 0)))
+  const gap = Math.max(2, room - segCells(shown) - rightCells)
+
+  const name = fit(tool, NAME_COL)
+
+  return paint(Text, status.isRunning ? C.running : undefined, width, [
+    statusOf(status),
     { text: '  ' },
+    { text: name, color: status.isRunning ? C.blue : C.dim },
+    { text: ' '.repeat(NAME_COL - cells(name) + 2) },
     ...shown,
     ...(rightCells > 0 ? [{ text: ' '.repeat(gap) }, ...right] : []),
   ])
 }
 
-function diffRow(Text: TextEl, bg: string, width: number, mark: '+' | '−', code: string, path: string): RenderElement {
+const noteRow = (Text: TextEl, width: number, segs: Seg[]): RenderElement =>
+  paint(Text, undefined, width, [{ text: ' '.repeat(TARGET_COL - 1) }, ...segs])
+
+function diffRow(Text: TextEl, width: number, mark: '+' | '−', code: string, path: string): RenderElement {
   const lineBg = mark === '+' ? C.addBg : C.delBg
-  const codeWidth = width - 7
+  const codeWidth = width - TARGET_COL - 4
   const segs = fitSegs(highlight(code, path), codeWidth).map(s => ({ ...s, bg: lineBg }))
 
-  return paint(Text, bg, width, [
-    { text: '  ' },
+  return paint(Text, undefined, width, [
+    { text: ' '.repeat(TARGET_COL - 1) },
     { text: ` ${mark} `, color: mark === '+' ? C.green : C.red, bg: lineBg },
     ...segs,
     { text: ' '.repeat(Math.max(0, codeWidth - segCells(segs))), bg: lineBg },
@@ -706,6 +863,7 @@ export const register: Register = on => {
 
   on('prompt.submit', async ($, e, next) => {
     await update($, scene, sc => ({ ...sc, bubble: 'Đang đọc yêu cầu…', turnTools: 0 }))
+    await update($, toolRuns, endRun)
     turnStartedAt = await $.clock.now()
     lastActivityAt = turnStartedAt
 
@@ -735,6 +893,13 @@ export const register: Register = on => {
 
     // A subagent's call is also a step on its card.
     const agentId = e.agentId
+    // Consecutive drawn calls of the main loop share a frame; any other call
+    // (an Agent card, another plugin's tool) breaks the run around it.
+    const isDrawn = DRAWN_TOOLS.has(tool)
+    if (!agentId) {
+      if (isDrawn && id) await update($, toolRuns, runs => joinRun(runs, id))
+      else if (!isDrawn) await update($, toolRuns, endRun)
+    }
     const agentType = agentId ? (await read($, agents))[agentId]?.type : undefined
     await update($, scene, sc => ({
       ...sc,
@@ -753,9 +918,10 @@ export const register: Register = on => {
     const ran = await next(e)
     const endedAt = await $.clock.now()
     if (!agentId) lastActivityAt = endedAt
+    if (!agentId && !isDrawn) await update($, toolRuns, endRun)
+    const isErrored = ran.deny !== undefined || ran.isError === true
     if (agentId && id) {
       const path = str(fields(e).file_path) || str(fields(e).notebook_path)
-      const isErrored = ran.deny !== undefined || ran.isError === true
       await update($, agents, all => {
         const run = all[agentId]
         if (!run) return all
@@ -765,7 +931,7 @@ export const register: Register = on => {
         return { ...all, [agentId]: { ...run, steps, filesRead, filesEdited } }
       })
     }
-    if (id) await update($, timings, all => ({ ...all, [id]: { startedAt, ms: endedAt - startedAt } }))
+    if (id) await update($, timings, all => ({ ...all, [id]: { startedAt, ms: endedAt - startedAt, isErrored } }))
 
     if (RUN_TOOLS.has(tool)) {
       const command = str(fields(e).command)
@@ -777,6 +943,15 @@ export const register: Register = on => {
     if (EDIT_TOOLS.has(tool) || RUN_TOOLS.has(tool)) await refreshGit($)
 
     return ran
+  })
+
+  // Text the model writes between tool calls ends the run before it: the calls
+  // after it draw in a new frame. A subagent's steps are not the main loop's.
+  on('turn.step', async function* ($, e, next) {
+    const result = yield* next(e)
+    if (!e.agentId && result.answer.trim() !== '') await update($, toolRuns, endRun)
+
+    return result
   })
 
   // A subagent started by the Agent tool: tracked from spawn to its last turn.
@@ -866,36 +1041,39 @@ export const register: Register = on => {
     )
   })
 
-  // A folded run of reads and searches: a count line, then one card. A group
-  // holding a tool this card cannot draw faithfully (another plugin's, an agent
+  // A folded run of reads and searches: one frame, a row per call. A group
+  // holding a tool this frame cannot draw faithfully (another plugin's, an agent
   // call) goes on down the chain, where that plugin or the engine draws it.
-  on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, ($, e, next) => {
+  on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, async ($, e, next) => {
+    for (const call of e.props.calls) {
+      if (!call.tool_use_id) continue
+      if (e.props.isExpanded) inlineRows.add(call.tool_use_id)
+      else inlineRows.delete(call.tool_use_id)
+    }
     if (e.props.isExpanded || e.props.calls.some(call => !DRAWN_TOOLS.has(call.tool))) return next(e)
     const { Box, Text } = $.ui.resolve(e)
-    const width = cardWidth(e.viewport?.columns)
+    const width = frameWidth(e.viewport?.columns)
+    const inner = width - 2
     const calls = e.props.calls
-    const bg = calls.some(call => call.isRunning) ? C.running : C.snippet
+    const timed = await read($, timings)
+    const msOf = (id?: string): number | null => (id ? (timed[id]?.ms ?? null) : null)
+    const status = mergeStatus(calls)
+    const color = frameColor(status)
+    const finished = calls.flatMap(call => msOf(call.tool_use_id) ?? [])
 
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text color={C.dim}>  {calls.length} tool call{calls.length === 1 ? '' : 's'}</Text>
-        {card(
-          Box,
-          Text,
-          bg,
-          width,
-          calls.map(call =>
-            toolRow(Text, bg, width, statusOf(call), call.tool, target(call.tool, fields(call.input)), summaryOf(call.tool, call)),
-          ),
-          0,
+        {borderTop(Box, Text, color, width, frameLabel(calls, finished))}
+        {calls.map(call =>
+          framed(Box, Text, color, [
+            callRow(Text, inner, call, call.tool, target(call.tool, fields(call.input)), rowRight(call.tool, call, msOf(call.tool_use_id))),
+          ]),
         )}
+        {borderBottom(Text, color, width)}
       </Box>
     )
   })
 
-  // One tool call as a card. Edits carry their changed lines, highlighted;
-  // in fullscreen a long diff folds behind a toggle, and hovering the card
-  // shows the full command, its timing and its last output lines.
   // An Agent call as a live card: what the subagent is doing, then a summary.
   // Its status comes from the agent's own run: a background agent keeps
   // working after the Agent tool call itself returned.
@@ -991,52 +1169,125 @@ export const register: Register = on => {
     )
   })
 
+  // One tool call as a row of a frame. Fullscreen rows redraw as a run grows, so
+  // the calls of one run join: the first row draws the top border, the last the
+  // bottom one. The main screen cannot redraw a row once printed, so each call
+  // there is a whole frame. Edits carry their changed lines, highlighted; in
+  // fullscreen a long diff folds behind a toggle, a finished run of several
+  // calls folds into its border, and hovering a row shows the full command, its
+  // timing and its last output lines.
   on('ui.render', { component: 'ToolUse', surface: 'terminal' }, async ($, e, next) => {
     const tool = e.props.tool
-    if (!DRAWN_TOOLS.has(tool)) return next(e)
+    const width = frameWidth(e.viewport?.columns)
+    if (!DRAWN_TOOLS.has(tool)) {
+      if (!isForeign(tool)) return next(e)
+      // Another plugin's tool: its own row, inside a frame that its result
+      // block closes. A call still running, or one drawn with its result inline,
+      // gets no result block, so its frame closes here.
+      const { Box, Text } = $.ui.resolve(e)
+      const isOpen = !e.props.isRunning && e.props.output !== undefined && !inlineRows.has(e.props.tool_use_id)
+      const status: Status = { isRunning: e.props.isRunning, isErrored: e.props.isErrored, isInterrupted: e.props.isInterrupted }
+
+      return enclosed(Box, Text, frameColor(status), width, await next(e), { top: true, bottom: !isOpen })
+    }
     const { Box, Text, Button } = $.ui.resolve(e)
     const id = e.props.tool_use_id
     const isFullscreen = e.viewport?.isFullscreen === true
-    const width = cardWidth(e.viewport?.columns) - (isFullscreen ? 8 : 0)
+    const inner = width - 2
+    const [runs, timed, folds] = await Promise.all([read($, toolRuns), read($, timings), read($, expanded)])
     const input = fields(e.props.input)
-    const bg = e.props.isRunning ? C.running : C.snippet
     const path = str(input.file_path) || str(input.notebook_path)
+
+    // The run this row belongs to, and its place in it.
+    const runId = runs.byId[id] ?? ''
+    const order = isFullscreen && runId !== '' ? (runs.order[runId] ?? []) : []
+    const at = order.indexOf(id)
+    const ids = at >= 0 ? order : [id]
+    const isFirst = at <= 0
+    const isLast = at < 0 || at === ids.length - 1
+    const statuses: Status[] = ids.map(one =>
+      one === id ? e.props : { isRunning: timed[one]?.ms === null, isErrored: timed[one]?.isErrored === true },
+    )
+    const status = mergeStatus(statuses)
+    const color = frameColor(status)
+    const label = frameLabel(statuses, ids.flatMap(one => timed[one]?.ms ?? []))
+
+    // A run folds once it is closed, finished and clean; one with a failure never does.
+    const isFoldable = at >= 0 && ids.length >= FOLD_RUN && runs.current !== runId && !status.isRunning && !status.isErrored
+    const isRunOpen = !isFoldable || (folds[runId] ?? false)
+    const runToggle: Tail | undefined = isFoldable && isFirst
+      ? {
+          cells: 9,
+          node: (
+            <Button
+              key={`fold-${runId}`}
+              plain
+              label={isRunOpen ? '▾ thu gọn' : '▸ mở rộng'}
+              onPress={() => update($, expanded, all => ({ ...all, [runId]: !isRunOpen }))}
+            />
+          ),
+        }
+      : undefined
+    if (!isRunOpen) {
+      if (!isFirst) return <Box />
+      return (
+        <Box key={`tool-${id}`} flexDirection="column" marginTop={1}>
+          {borderTop(Box, Text, color, width, label, runToggle)}
+          {borderBottom(Text, color, width)}
+        </Box>
+      )
+    }
+
     const diff = EDIT_TOOLS.has(tool) ? editDiff(tool, input) : null
+    const timing = timed[id]
     const right: Seg[] = [
       ...(diff ? [{ text: `−${diff.removed.length}`, color: C.red }, { text: ' ' }, { text: `+${diff.added.length}`, color: C.green }] : []),
-      ...summaryOf(tool, e.props).map((s, i) => (i === 0 && diff ? { ...s, text: `  ${s.text}` } : s)),
+      ...rowRight(tool, e.props, timing?.ms ?? null).map((s, i) => (i === 0 && diff ? { ...s, text: `  ${s.text}` } : s)),
     ]
     const shown: Array<['+' | '−', string]> = diff && tool !== 'Write'
       ? [...diff.removed.map(l => ['−', l] as ['−', string]), ...diff.added.map(l => ['+', l] as ['+', string])]
       : []
     const canFold = isFullscreen && shown.length > FOLD_OVER
-    const isOpen = !canFold || ((await read($, expanded))[id] ?? false)
+    const isOpen = !canFold || (folds[id] ?? false)
     const visible = isOpen ? shown.slice(0, DIFF_LINES) : []
-    const header = toolRow(Text, bg, width, statusOf(e.props), tool, target(tool, input), right)
+    const diffLabel = isOpen ? '▾ gập' : '▸ diff'
+    const failed = e.props.isErrored && !e.props.isInterrupted ? errorLine(e.props.output) : ''
 
-    const body: RenderElement[] = [
-      canFold ? (
-        <Box>
-          {header}
-          <Text> </Text>
-          <Button
-            key={`fold-${id}`}
-            plain
-            label={isOpen ? '▾ gập' : '▸ diff'}
-            onPress={() => update($, expanded, all => ({ ...all, [id]: !isOpen }))}
-          />
-        </Box>
-      ) : header,
-      ...visible.map(([mark, code]) => diffRow(Text, bg, width, mark, code, path)),
+    const rows: RenderElement[] = [
+      canFold
+        ? framed(Box, Text, color, [
+            callRow(Text, inner - cells(diffLabel), e.props, tool, target(tool, input), right),
+            <Button
+              key={`fold-${id}`}
+              plain
+              label={diffLabel}
+              onPress={() => update($, expanded, all => ({ ...all, [id]: !isOpen }))}
+            />,
+          ])
+        : framed(Box, Text, color, [callRow(Text, inner, e.props, tool, target(tool, input), right)]),
+      ...(failed === ''
+        ? []
+        : [framed(Box, Text, color, [noteRow(Text, inner, [{ text: '└ ', color: C.redDim }, { text: fit(failed, inner - TARGET_COL - 3), color: C.redDim }])])]),
+      ...visible.map(([mark, code]) => framed(Box, Text, color, [diffRow(Text, inner, mark, code, path)])),
       ...(isOpen && shown.length > DIFF_LINES
-        ? [paint(Text, bg, width, [{ text: `   … ${shown.length - DIFF_LINES} dòng nữa (ctrl+o)`, color: C.faint }])]
+        ? [framed(Box, Text, color, [noteRow(Text, inner, [{ text: `… ${shown.length - DIFF_LINES} dòng nữa (ctrl+o)`, color: C.faint }])])]
         : []),
     ]
+    const block: RenderElement[] = [
+      ...(isFirst ? [borderTop(Box, Text, color, width, label, runToggle)] : []),
+      ...rows,
+      ...(isLast ? [borderBottom(Text, color, width)] : []),
+    ]
 
-    if (!isFullscreen) return card(Box, Text, bg, width, body)
+    if (!isFullscreen) {
+      return (
+        <Box flexDirection="column" marginTop={1}>
+          {block}
+        </Box>
+      )
+    }
 
-    // Hover card, placed under the tool card without moving anything.
-    const timing = (await read($, timings))[id]
+    // Hover card, placed under the row without moving anything.
     const out = fields(e.props.output)
     const tail = RUN_TOOLS.has(tool) ? lines(`${str(out.stdout)}${str(out.stderr)}`.trim()).slice(-3) : []
     const popWidth = Math.min(width, 64)
@@ -1062,21 +1313,30 @@ export const register: Register = on => {
           ]
         : []),
     ], 0)
-    const cardRows = 2 + body.length
 
     return (
-      <Box key={`tool-${id}`} flexDirection="column" marginTop={1}>
-        {card(Box, Text, bg, width, body, 0)}
-        <Box position="absolute" top={cardRows} left={0} display="none" hover={{ display: 'flex' }}>
+      <Box key={`tool-${id}`} flexDirection="column" marginTop={isFirst ? 1 : 0}>
+        {block}
+        <Box position="absolute" top={block.length} left={0} display="none" hover={{ display: 'flex' }}>
           {pop}
         </Box>
       </Box>
     )
   })
 
-  // The ToolUse card already summarizes these results; errors keep the engine's row.
-  on('ui.render', { component: 'ToolResult', surface: 'terminal' }, ($, e, next) => {
-    if (e.props.isErrored || !DRAWN_TOOLS.has(e.props.tool)) return next(e)
+  // The ToolUse row already summarizes these results. A failure in fullscreen is
+  // summarized in the frame too: the engine's block would cut the run's border.
+  // Another plugin's tool keeps its result block, drawn inside the frame its row
+  // opened: side bars down its height, then the closing border.
+  on('ui.render', { component: 'ToolResult', surface: 'terminal' }, async ($, e, next) => {
+    if (isForeign(e.props.tool)) {
+      const { Box, Text } = $.ui.resolve(e)
+      const color = frameColor({ isRunning: false, isErrored: e.props.isErrored, isInterrupted: false })
+
+      return enclosed(Box, Text, color, frameWidth(e.viewport?.columns), await next(e), { top: false, bottom: true })
+    }
+    const isFramed = !e.props.isErrored || e.viewport?.isFullscreen === true
+    if (!isFramed || !DRAWN_TOOLS.has(e.props.tool)) return next(e)
     const { Box } = $.ui.resolve(e)
 
     return <Box />
