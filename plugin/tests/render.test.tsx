@@ -53,7 +53,7 @@ test('a folded group lists each call with its target', async $ => {
 
 const quiet = { isRunning: false, isErrored: false, isInterrupted: false }
 
-test('a folded group with a tool acp-ui does not draw is passed down the chain', async ($, on) => {
+test('a folded group with a tool acp-ui does not draw gets the engine row inside one frame', async ($, on) => {
   on('ui.render', { component: 'ToolGroup', surface: 'terminal' }, ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text>drawn further down</Text>
@@ -74,7 +74,8 @@ test('a folded group with a tool acp-ui does not draw is passed down the chain',
 
   expect(await ui.find({ type: 'Text', text: 'drawn further down' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /lệnh/ })).toBeUndefined()
-  expect(await ui.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^╭─+╮$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
 })
 
 test('an expanded group is passed down the chain', async ($, on) => {
@@ -92,7 +93,7 @@ test('an expanded group is passed down the chain', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: 'drawn further down' })).toBeDefined()
 })
 
-test('the person’s prompt draws as a card with its text', async $ => {
+test('the person’s prompt draws as a rounded box in the prompt colour, without a fill', async $ => {
   const ui = await $.ui.mount({
     plugin: 'acp-ui',
     surface: 'terminal',
@@ -101,7 +102,49 @@ test('the person’s prompt draws as a card with its text', async $ => {
   })
 
   expect(await ui.find({ type: 'Text', text: 'sửa lỗi viewport' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '› ' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /› / })).toBeDefined()
+  for (const edge of [/^╭─+╮$/, /^╰─+╯$/]) {
+    const found = JSON.stringify(await ui.find({ type: 'Text', text: edge }))
+    expect(found).toContain('#C77DBA')
+    expect(found).not.toContain('#5B6B8C')
+  }
+  expect(await ui.find({ type: 'Text', text: '│' })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: 'sửa lỗi viewport' }))).not.toContain('backgroundColor')
+})
+
+test('the person’s prompt box spans the frame width with the right border at the far edge', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    viewport: { columns: 80, rows: 24 },
+    component: 'UserMessage',
+    props: { text: 'sửa lỗi viewport', origin: { kind: 'composer' }, isExpanded: false },
+  })
+
+  const top = await ui.find({ type: 'Text', text: /^╭─+╮$/ })
+  expect([...(top?.text ?? '')].length).toBe(78)
+  const row = await ui.find({ type: 'Text', text: /› sửa lỗi viewport/ })
+  expect([...(row?.text ?? '')].length).toBe(76)
+  expect(await ui.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+})
+
+test('a long prompt wraps inside the frame width', async $ => {
+  const text = Array.from({ length: 40 }, () => 'từ').join(' ')
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    viewport: { columns: 50, rows: 24 },
+    component: 'UserMessage',
+    props: { text, origin: { kind: 'composer' }, isExpanded: false },
+  })
+
+  const top = await ui.find({ type: 'Text', text: /^╭─+╮$/ })
+  expect([...(top?.text ?? '')].length).toBe(48)
+  expect(await ui.find({ type: 'Text', text: text })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /từ từ từ/ })).toBeDefined()
+  // A wrapped row fills the inner width, so the right border stays aligned.
+  const first = await ui.find({ type: 'Text', text: /› từ/ })
+  expect([...(first?.text ?? '')].length).toBe(46)
 })
 
 test('/dash opens the pane, and a second /dash closes it', async ($, on) => {
@@ -276,9 +319,12 @@ test('in fullscreen consecutive calls share one frame; text between them splits 
   const last = await $.ui.mount(readRow('u2', 'src/b.ts'))
   expect(await first.find({ type: 'Text', text: /^╭/ })).toBeDefined()
   expect(await first.find({ type: 'Text', text: /2 lệnh/ })).toBeDefined()
-  expect(await first.find({ type: 'Text', text: /^╰/ })).toBeUndefined()
-  expect(await last.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
-  expect(await last.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+  // The hover popup carries its own frame; the shared one closes on the last row only.
+  const corners = async (ui: typeof first, mark: string) => JSON.stringify(await ui.drawn()).split(mark).length - 1
+  expect(await corners(first, '╭')).toBe(2)
+  expect(await corners(first, '╰')).toBe(1)
+  expect(await corners(last, '╭')).toBe(1)
+  expect(await corners(last, '╰')).toBe(2)
 
   await say('Đã đọc xong, giờ tìm tiếp.')
   await $.tool.call({ tool: 'Read', file_path: 'src/c.ts', tool_use_id: 'u3' })
@@ -409,15 +455,15 @@ test('/acp-theme lists themes, switches the palette and remembers the choice', a
   expect((await run('github-light')).text).toContain('GitHub Light')
   expect((await run('')).text).toContain('`github-light`: GitHub Light (cho terminal nền sáng) ← đang dùng')
 
-  // A user card now paints with the light theme's widget color.
+  // A user message now draws its border with the light theme's prompt color.
   const ui = await $.ui.mount({
     plugin: 'acp-ui',
     surface: 'terminal',
     component: 'UserMessage',
     props: { text: 'xin chào', origin: { kind: 'composer' }, isExpanded: false },
   })
-  expect(await ui.find({ type: 'Text', text: /^▗▄+▖$/ })).toBeDefined()
-  expect(JSON.stringify(await ui.find({ type: 'Text', text: /^▗▄+▖$/ }))).toContain('#EAEEF2')
+  expect(await ui.find({ type: 'Text', text: /^╭─+╮$/ })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: /^╭─+╮$/ }))).toContain('#BF3989')
   await run('spec-ade')
 })
 
@@ -491,6 +537,108 @@ test('an Agent call draws as a card with its type and task', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: '◌' })).toBeDefined()
 })
 
+const agentUse = (state: { isRunning: boolean; isErrored?: boolean; isInterrupted?: boolean }, input: object = { description: 'tìm file', prompt: '', subagent_type: 'Explore' }) => ({
+  plugin: 'acp-ui',
+  surface: 'terminal',
+  component: 'ToolUse',
+  props: { tool_use_id: 'tu_agent', tool: 'Agent', input, isErrored: false, isInterrupted: false, ...state },
+}) as const
+
+test('an Agent card is drawn in a rounded frame, running or finished, with no fill', async ($, on) => {
+  mock.clock(on)
+  const states = [
+    { isRunning: true },
+    { isRunning: false },
+    { isRunning: false, isErrored: true },
+    { isRunning: false, isInterrupted: true },
+  ]
+  for (const state of states) {
+    const ui = await $.ui.mount(agentUse(state))
+
+    expect(await ui.find({ type: 'Text', text: /^╭─+╮$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^│/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /[▗▝]/ })).toBeUndefined()
+    expect(JSON.stringify(await ui.drawn())).not.toContain('backgroundColor')
+  }
+})
+
+test('a running Agent card signals it by the accent frame, not a fill', async ($, on) => {
+  mock.clock(on)
+  const running = await (await $.ui.mount(agentUse({ isRunning: true }))).find({ type: 'Text', text: /^╭─+╮$/ })
+  const done = await (await $.ui.mount(agentUse({ isRunning: false }))).find({ type: 'Text', text: /^╭─+╮$/ })
+
+  expect(running?.props?.color).not.toBe(done?.props?.color)
+})
+
+const POPUP_FILL = '#3A3B3F'
+const count = (text: string, mark: string) => text.split(mark).length - 1
+
+test('an Agent card has no hover popup: one rounded frame in fullscreen', async ($, on) => {
+  mock.clock(on)
+  on('session.cwd', () => ({ value: 'E:/repo' }))
+  on('agent.spawn', () => ({ model: 'claude-haiku-4-5', agentId: 'ag1' }))
+  on('turn.complete', () => ({ text: '' }))
+  await $.agent.spawn({
+    tool_use_id: 'tu_agent',
+    prompt: 'tìm file',
+    description: 'tìm file viewport',
+    subagentType: 'Explore',
+    provider: { plugin: 'engine', tier: 'core' },
+    parentModel: 'claude-opus-5-5',
+    background: true,
+    fork: false,
+  })
+  const ui = await $.ui.mount({ ...agentUse({ isRunning: true }), viewport: FULLSCREEN })
+  const drawn = JSON.stringify(await ui.drawn())
+
+  expect(count(drawn, '╭')).toBe(1)
+  expect(count(drawn, '╮')).toBe(1)
+  expect(count(drawn, '╰')).toBe(1)
+  expect(count(drawn, '╯')).toBe(1)
+  expect(drawn).not.toContain('hover')
+})
+
+test('the hover popup of a tool row is a rounded frame whose rows use the darkest tone', async ($, on) => {
+  mock.clock(on)
+  const ui = await $.ui.mount({
+    ...readRow('u_hover', 'src/a.ts'),
+    props: { ...readRow('u_hover', 'src/a.ts').props, tool: 'Bash', input: { command: 'npm test' }, output: { stdout: 'one\ntwo', stderr: '' } },
+  })
+  const drawn = JSON.stringify(await ui.drawn())
+
+  expect(count(drawn, '╭')).toBe(2)
+  expect(count(drawn, '╮')).toBe(2)
+  expect(count(drawn, '╰')).toBe(2)
+  expect(count(drawn, '╯')).toBe(2)
+  expect(drawn).toContain('#27282B')
+  expect(drawn).not.toContain(POPUP_FILL)
+})
+
+test('an Agent card with no description reads the first line of its prompt', async ($, on) => {
+  mock.clock(on)
+  const ui = await $.ui.mount(agentUse({ isRunning: false }, { prompt: '\nđọc file config\nthêm chi tiết' }))
+
+  expect(await ui.find({ type: 'Text', text: 'đọc file config' })).toBeDefined()
+})
+
+test('an Agent call result leaves the engine block out, the card carries it', async ($, on) => {
+  mock.clock(on)
+  on('ui.render', { component: 'ToolResult', surface: 'terminal' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text backgroundColor="#303135">engine result</Text>
+  })
+  const result = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'terminal',
+    component: 'ToolResult',
+    props: { tool_use_id: 'tu_agent', tool: 'Agent', output: 'xong', isErrored: false },
+  })
+
+  expect(await result.find({ type: 'Text', text: 'engine result' })).toBeUndefined()
+})
+
+
 const WORKING_BAND = {
   plugin: 'acp-ui',
   surface: 'terminal',
@@ -521,6 +669,96 @@ test('the scene keeps moving with no new tool call: the cat paces, the ground sc
     await ui.advance(210)
   }
   expect(frames.size).toBeGreaterThan(4)
+})
+
+test('the scene spans the whole band however wide the terminal is', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  const textOf = (node: Drawn | string | undefined): string =>
+    typeof node === 'string' ? node : (node?.children ?? []).map(c => textOf(c)).join('')
+
+  for (const columns of [80, 200]) {
+    const ui = await $.ui.mount({ ...WORKING_BAND, props: { ...WORKING_BAND.props, bodyColumns: columns } })
+    const frame = (await ui.drawn({ in: 'scene' })) as Drawn
+    const rows = (frame.children ?? []).slice(1) as Drawn[] // the first row is the bubble
+    // The house stands at the right end, so the ground rows reach the full width.
+    expect(rows.map(r => [...textOf(r)].length)).toEqual(rows.map(() => columns - 2))
+  }
+})
+
+// The pixel rows of the grid that hold the cat's fur, read off a drawn frame:
+// a half-block cell lights its top pixel as the glyph and its bottom as the background.
+const FUR = '#E8A35C'
+type Drawn = { type?: string; props?: { color?: string; backgroundColor?: string }; children?: Array<Drawn | string> }
+
+function furRows(frame: Drawn): number[] {
+  const rows = new Set<number>()
+  const textRows = (frame.children ?? []).slice(1) as Drawn[] // the first row is the bubble
+  textRows.forEach((line, r) => {
+    const cells = (line.children ?? []).filter((c): c is Drawn => typeof c !== 'string')
+    for (const cell of cells) {
+      const glyph = String(cell.children?.[0] ?? '')
+      if (cell.props?.color === FUR && glyph.includes('▀')) rows.add(r * 2)
+      if (cell.props?.color === FUR && glyph.includes('▄')) rows.add(r * 2 + 1)
+      if (cell.props?.backgroundColor === FUR) rows.add(r * 2 + 1)
+    }
+  })
+
+  return [...rows].sort((a, b) => a - b)
+}
+
+test('the whole cat is drawn on every frame of the scene, ears to paws', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  const ui = await $.ui.mount(WORKING_BAND)
+  for (let i = 0; i < 12; i += 1) {
+    const rows = furRows((await ui.drawn({ in: 'scene' })) as Drawn)
+    // Seven pixel rows, none clipped at the top of the grid.
+    expect(rows.length).toBe(7)
+    expect(rows.at(-1)! - rows[0]!).toBe(6)
+    expect(rows[0]).toBeGreaterThanOrEqual(0)
+    // The cat stands on the ground, which fills the grid's last text row.
+    expect(rows.at(-1)).toBeLessThanOrEqual(7)
+    await ui.advance(70)
+  }
+})
+
+test('the ground fills a whole text row, both pixel rows lit, and the cat rests above it', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  const ui = await $.ui.mount(WORKING_BAND)
+  const frame = (await ui.drawn({ in: 'scene' })) as Drawn
+  const textRows = (frame.children ?? []).slice(1) as Drawn[]
+  const ground = textRows.at(-1)!
+  const cells = (ground.children ?? []).filter((c): c is Drawn => typeof c !== 'string')
+  const lit = cells.filter(cell => String(cell.children?.[0] ?? '').trim() !== '')
+  expect(lit.length).toBeGreaterThan(0)
+  // Each lit ground cell has the same colour on its top and bottom pixel, so it reads as a full block.
+  for (const cell of lit) {
+    expect(cell.props?.color).toBeDefined()
+    expect(cell.props?.backgroundColor).toBe(cell.props?.color)
+    expect(String(cell.children?.[0])).not.toContain('▄')
+  }
+  // The cat's paws end on the pixel row just above the ground's text row.
+  expect(furRows(frame).at(-1)).toBe((textRows.length - 1) * 2 - 1)
+})
+
+test('the game cat stays whole at the top of its jump', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  await $.command.run({ command: 'play', args: '', ...RUN_INPUT })
+  const ui = await $.ui.mount({ ...WORKING_BAND, props: { ...WORKING_BAND.props, isWorking: false } })
+  await ui.key({ key: ' ', in: 'scene' })
+  let highest = Infinity
+  for (let i = 0; i < 11; i += 1) {
+    const rows = furRows((await ui.drawn({ in: 'scene' })) as Drawn)
+    expect(rows.length).toBe(7)
+    expect(rows.at(-1)! - rows[0]!).toBe(6)
+    highest = Math.min(highest, rows[0]!)
+    await ui.advance(70)
+  }
+  // The jump reaches its full height: 14 rows less the ground, the cat and the jump leave one row above.
+  expect(highest).toBe(1)
 })
 
 test('/play turns the band into the Né bug game, which ends on a hit and restarts on Space', async ($, on) => {
@@ -641,10 +879,11 @@ test('a foreign tool in an expanded group closes its frame in the row', async ($
   expect(await use.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
 })
 
-test('a tool the mod neither draws nor frames keeps the engine row', async ($, on) => {
+test('a built-in tool the mod does not draw keeps the engine row, in a frame it closes itself', async ($, on) => {
   drawForeign(on)
   const use = await $.ui.mount({ ...foreignUse({ output: {} }), props: { tool_use_id: 'tu_t', tool: 'TodoWrite', input: {}, ...quiet, output: {} } })
 
-  expect(await use.find({ type: 'Text', text: /^╭/ })).toBeUndefined()
+  expect(await use.find({ type: 'Text', text: /^╭─+╮$/ })).toBeDefined()
+  expect(await use.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
   expect(await use.find({ type: 'Text', text: '◎ Retrieval header' })).toBeDefined()
 })

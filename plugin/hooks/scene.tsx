@@ -41,11 +41,17 @@ type SceneState = {
   over: boolean
 }
 
-const PX_ROWS = 8 // pixel rows: 4 text rows
 const FRAME_MS = 70
 const JUMP_FRAMES = 10
 const JUMP_HEIGHT = 4
 const CAT_X_GAME = 4
+
+// Pixel rows of the grid, an even number so text rows hold two each. Scene: the
+// ground, the cat and its bob. Game: the ground, the cat and its highest jump.
+// The Client's height in register.tsx is one bubble row plus half of this.
+const PX_ROWS = { scene: 10, game: 14 } as const
+// The ground fills one whole text row; everything else stands on top of it.
+const GROUND_ROWS = 2
 const CAT_W = 11
 const PACE = 5 // how far the cat paces either side of where it stands
 const WALK_PX = 0.5 // pixels per frame
@@ -78,7 +84,7 @@ const HOUSE = ['..#..', '.###.', '#####', '#.#.#', '#.#.#']
 
 type Px = (string | null)[][]
 
-const blank = (w: number): Px => Array.from({ length: PX_ROWS }, () => Array<string | null>(w).fill(null))
+const blank = (w: number, h: number): Px => Array.from({ length: h }, () => Array<string | null>(w).fill(null))
 
 const mirror = (sprite: readonly string[]): string[] => sprite.map(row => [...row].reverse().join(''))
 
@@ -88,7 +94,7 @@ function stamp(px: Px, sprite: readonly string[], x: number, y: number, colors: 
       const color = colors[ch]
       const yy = y + dy
       const xx = x + dx
-      if (color && yy >= 0 && yy < PX_ROWS && xx >= 0 && xx < (px[0]?.length ?? 0)) {
+      if (color && yy >= 0 && yy < px.length && xx >= 0 && xx < (px[0]?.length ?? 0)) {
         const line = px[yy]
         if (line) line[xx] = color
       }
@@ -99,7 +105,7 @@ function stamp(px: Px, sprite: readonly string[], x: number, y: number, colors: 
 // Packs two pixel rows per text row, joining runs of one look into one Text.
 function rows(px: Px, Text: ClientSurface['elements']['Text']): RenderElement[] {
   const out: RenderElement[] = []
-  for (let r = 0; r < PX_ROWS; r += 2) {
+  for (let r = 0; r < px.length; r += 2) {
     const top = px[r] ?? []
     const bottom = px[r + 1] ?? []
     const runs: Array<{ glyph: string; fg?: string; bg?: string; n: number }> = []
@@ -160,7 +166,7 @@ const fresh = (props: SceneProps, width: number, best: number): SceneState => ({
 
 const Scene: ClientModule<SceneProps, SceneState> = (props, surface) => {
   const { Box, Text } = surface.elements
-  const width = Math.max(30, Math.min(props.width, 120))
+  const width = Math.max(30, props.width)
   const state = surface.state ?? fresh(props, width, 0)
   state.live.props = props
   state.live.width = width
@@ -185,7 +191,10 @@ const Scene: ClientModule<SceneProps, SceneState> = (props, surface) => {
   }
 
   const c = props.colors
-  const px = blank(width)
+  const height = PX_ROWS[props.mode]
+  // The pixel row of the ground's top edge, which sprites rest just above.
+  const ground = height - GROUND_ROWS
+  const px = blank(width, height)
   const catColors = { '#': c.cat, o: c.eye, p: c.nose, t: c.cat }
 
   // Stars twinkle in the top rows and drift.
@@ -197,10 +206,11 @@ const Scene: ClientModule<SceneProps, SceneState> = (props, surface) => {
   })
 
   // The ground: crenellated, scrolling under the cat; the done part lit.
-  const track = px[PX_ROWS - 1]
   const scroll = props.mode === 'game' ? state.frame : Math.floor(state.frame / 2)
   const doneTo = Math.round(Math.max(0, Math.min(1, props.progress)) * (width - 1))
-  if (track) {
+  for (let y = ground; y < height; y += 1) {
+    const track = px[y]
+    if (!track) continue
     for (let x = 0; x < width; x += 1) {
       if ((x + scroll) % 3 !== 2) track[x] = props.mode === 'scene' && x <= doneTo ? c.trackDone : c.track
     }
@@ -208,20 +218,20 @@ const Scene: ClientModule<SceneProps, SceneState> = (props, surface) => {
 
   let bubbleX = 0
   if (props.mode === 'scene') {
-    stamp(px, HOUSE, width - 6, PX_ROWS - 1 - HOUSE.length, { '#': c.house })
-    const roof = px[PX_ROWS - 1 - HOUSE.length]
+    stamp(px, HOUSE, width - 6, ground - HOUSE.length, { '#': c.house })
+    const roof = px[ground - HOUSE.length]
     if (roof) roof[width - 4] = c.roof
     const x = Math.round(state.catX)
     const bob = Math.floor(state.frame / 3) % 2
     const cat = catSprite(state.frame, state.facing, true)
-    stamp(px, cat, x, PX_ROWS - 1 - cat.length - bob, catColors)
+    stamp(px, cat, x, ground - cat.length - bob, catColors)
     bubbleX = x + CAT_W + 1
   } else {
     const lift = state.jumpT > 0 ? Math.round(Math.sin((Math.PI * state.jumpT) / JUMP_FRAMES) * JUMP_HEIGHT) : 0
     const cat = catSprite(state.frame, 1, state.jumpT === 0 && !state.over)
-    stamp(px, cat, CAT_X_GAME, PX_ROWS - 1 - cat.length - lift, catColors)
+    stamp(px, cat, CAT_X_GAME, ground - cat.length - lift, catColors)
     const bug = BUG_FRAMES[Math.floor(state.frame / 4) % 2] ?? BUG_FRAMES[0] ?? []
-    state.bugs.forEach(b => stamp(px, bug, b.x, PX_ROWS - 1 - bug.length, { '#': c.bug }))
+    state.bugs.forEach(b => stamp(px, bug, b.x, ground - bug.length, { '#': c.bug }))
   }
 
   const full = props.mode === 'scene'

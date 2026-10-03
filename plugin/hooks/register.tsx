@@ -12,7 +12,7 @@ type BoxEl = ElementConstructor<BoxProps>
 // switching a theme copies another palette into them and redraws.
 
 type Palette = {
-  widget: string; snippet: string; running: string; pill: string; popup: string; track: string; frame: string; redDim: string
+  widget: string; snippet: string; running: string; pill: string; popup: string; track: string; frame: string; prompt: string; redDim: string
   text: string; soft: string; dim: string; faint: string; rule: string
   accent: string; green: string; red: string; blue: string; yellow: string; orange: string; violet: string; cyan: string
   addBg: string; delBg: string; tagBlueBg: string; tagBlueFg: string; tagYellowBg: string; tagYellowFg: string
@@ -25,7 +25,7 @@ const THEMES: Record<string, Theme> = {
   'spec-ade': {
     label: 'spec-ade (mặc định, nền tối)',
     c: {
-      widget: '#303135', snippet: '#27282B', running: '#1B2A40', pill: '#3A3B3F', popup: '#3A3B3F', track: '#55565A', frame: '#5B6B8C', redDim: '#B8626D',
+      widget: '#303135', snippet: '#27282B', running: '#1B2A40', pill: '#3A3B3F', popup: '#3A3B3F', track: '#55565A', frame: '#5B6B8C', prompt: '#C77DBA', redDim: '#B8626D',
       text: '#E0E1E4', soft: '#C3C5C9', dim: '#909192', faint: '#696A6B', rule: '#3A3A3A',
       accent: '#4B8DEC', green: '#69B090', red: '#F87C88', blue: '#71A3EF', yellow: '#E5BF8C', orange: '#E09B70', violet: '#AF9CFF', cyan: '#82D2CE',
       addBg: '#2C3B36', delBg: '#493135', tagBlueBg: '#10447F', tagBlueFg: '#D6E3F9', tagYellowBg: '#5C4014', tagYellowFg: '#F5DEC2',
@@ -35,7 +35,7 @@ const THEMES: Record<string, Theme> = {
   'tokyo-night': {
     label: 'Tokyo Night (nền tối xanh)',
     c: {
-      widget: '#292E42', snippet: '#1F2335', running: '#23345C', pill: '#2F3549', popup: '#2F3549', track: '#3B4261', frame: '#4A5578', redDim: '#B5586C',
+      widget: '#292E42', snippet: '#1F2335', running: '#23345C', pill: '#2F3549', popup: '#2F3549', track: '#3B4261', frame: '#4A5578', prompt: '#E0719F', redDim: '#B5586C',
       text: '#C0CAF5', soft: '#A9B1D6', dim: '#8189B0', faint: '#565F89', rule: '#2F3549',
       accent: '#7AA2F7', green: '#9ECE6A', red: '#F7768E', blue: '#7AA2F7', yellow: '#E0AF68', orange: '#FF9E64', violet: '#BB9AF7', cyan: '#7DCFFF',
       addBg: '#243B35', delBg: '#45283A', tagBlueBg: '#2A4B8D', tagBlueFg: '#D5E2FF', tagYellowBg: '#5A4320', tagYellowFg: '#F4DDB8',
@@ -45,7 +45,7 @@ const THEMES: Record<string, Theme> = {
   dracula: {
     label: 'Dracula (nền tối tím)',
     c: {
-      widget: '#44475A', snippet: '#343746', running: '#2E3A5C', pill: '#4A4D60', popup: '#4A4D60', track: '#5B5F78', frame: '#6272A4', redDim: '#C25B63',
+      widget: '#44475A', snippet: '#343746', running: '#2E3A5C', pill: '#4A4D60', popup: '#4A4D60', track: '#5B5F78', frame: '#6272A4', prompt: '#FFB86C', redDim: '#C25B63',
       text: '#F8F8F2', soft: '#E2E2DC', dim: '#A6ACCD', faint: '#7A80A8', rule: '#44475A',
       accent: '#BD93F9', green: '#50FA7B', red: '#FF5555', blue: '#8BE9FD', yellow: '#F1FA8C', orange: '#FFB86C', violet: '#FF79C6', cyan: '#8BE9FD',
       addBg: '#2F4A3A', delBg: '#5A2E38', tagBlueBg: '#5A4A8A', tagBlueFg: '#F0E8FF', tagYellowBg: '#6A5A2A', tagYellowFg: '#FFF6C8',
@@ -55,7 +55,7 @@ const THEMES: Record<string, Theme> = {
   catppuccin: {
     label: 'Catppuccin Mocha (nền tối dịu)',
     c: {
-      widget: '#313244', snippet: '#26273A', running: '#283457', pill: '#3B3D52', popup: '#3B3D52', track: '#585B70', frame: '#6B7396', redDim: '#B96C82',
+      widget: '#313244', snippet: '#26273A', running: '#283457', pill: '#3B3D52', popup: '#3B3D52', track: '#585B70', frame: '#6B7396', prompt: '#F5C2E7', redDim: '#B96C82',
       text: '#CDD6F4', soft: '#BAC2DE', dim: '#9399B2', faint: '#6C7086', rule: '#313244',
       accent: '#89B4FA', green: '#A6E3A1', red: '#F38BA8', blue: '#89B4FA', yellow: '#F9E2AF', orange: '#FAB387', violet: '#CBA6F7', cyan: '#94E2D5',
       addBg: '#2E3F3A', delBg: '#4A2F3D', tagBlueBg: '#34507F', tagBlueFg: '#DCE7FF', tagYellowBg: '#5E5032', tagYellowFg: '#FBEFD2',
@@ -65,7 +65,7 @@ const THEMES: Record<string, Theme> = {
   'github-light': {
     label: 'GitHub Light (cho terminal nền sáng)',
     c: {
-      widget: '#EAEEF2', snippet: '#F3F4F6', running: '#DDF4FF', pill: '#E6EAEF', popup: '#E6EAEF', track: '#C9D1D9', frame: '#6E7B91', redDim: '#A5343C',
+      widget: '#EAEEF2', snippet: '#F3F4F6', running: '#DDF4FF', pill: '#E6EAEF', popup: '#E6EAEF', track: '#C9D1D9', frame: '#6E7B91', prompt: '#BF3989', redDim: '#A5343C',
       text: '#1F2328', soft: '#424A53', dim: '#59636E', faint: '#818B98', rule: '#D0D7DE',
       accent: '#0969DA', green: '#1A7F37', red: '#CF222E', blue: '#0969DA', yellow: '#9A6700', orange: '#BC4C00', violet: '#8250DF', cyan: '#1B7C83',
       addBg: '#DAFBE1', delBg: '#FFEBE9', tagBlueBg: '#DDF4FF', tagBlueFg: '#0550AE', tagYellowBg: '#FFF8C5', tagYellowFg: '#7D4E00',
@@ -141,7 +141,9 @@ const scene = atom({ plugin: 'acp-ui', key: 'scene' } as const, {
 } as Scene)
 const SCENE_KEY = 'scene'
 const BEST_KEY = 'nebug-best'
-const SCENE_ROWS = 5
+// Rows the scene Client draws: the bubble row plus the pixel grid's text rows
+// (scene.tsx PX_ROWS / 2), so the whole cat fits in either mode.
+const SCENE_ROWS = { scene: 6, game: 8 } as const
 
 const RUN_KEEP = 200
 
@@ -168,9 +170,9 @@ function joinRun(runs: ToolRuns, id: string): ToolRuns {
 const endRun = (runs: ToolRuns): ToolRuns => (runs.current === '' ? runs : { ...runs, current: '' })
 
 const AGENT_TOOLS = new Set(['Agent', 'Task'])
-// A tool another plugin or an MCP server provides. The built-in ones this mod
-// does not draw (a todo list, a plan) keep the engine's own rows, which carry
-// no result block to close a frame.
+// A tool another plugin or an MCP server provides: its result block closes the
+// frame its call opens. The built-in ones this mod does not draw (a todo list,
+// a plan) have no result block, so their row closes its own frame.
 const isForeign = (tool: string): boolean => tool.startsWith('mcp__')
 const isRunning = (run: AgentRun): boolean => run.endedAt === null
 const firstLine = (text: string): string => lines(text.trim()).find(l => l.trim() !== '')?.trim() ?? ''
@@ -252,8 +254,6 @@ function fitSegs(segs: Seg[], max: number): Seg[] {
 
   return out
 }
-
-const cardWidth = (columns: number | undefined): number => Math.max(40, Math.min((columns ?? 100) - 4, 120))
 
 // A tool frame spans the terminal, less a cell each side.
 const frameWidth = (columns: number | undefined): number => Math.max(40, (columns ?? 100) - 2)
@@ -515,6 +515,18 @@ const framed = (Box: BoxEl, Text: TextEl, color: string, parts: RenderElement[])
   </Box>
 )
 
+// A hover popup: a rounded frame in `color`. A terminal paints no background, so
+// each row carries the darkest tone itself to hide the text drawn beneath.
+function popup(Box: BoxEl, Text: TextEl, color: string, width: number, rows: Seg[][]): RenderElement {
+  return (
+    <Box flexDirection="column">
+      {borderTop(Box, Text, color, width, [])}
+      {rows.map(segs => framed(Box, Text, color, [paint(Text, C.snippet, width - 2, segs)]))}
+      {borderBottom(Text, color, width)}
+    </Box>
+  )
+}
+
 // Side bars of a tall block: a column of `│` drawn absolute, spanning the block
 // whatever its height, clipped to it. Taller than any result block there is.
 const BAR_ROWS = 400
@@ -543,8 +555,8 @@ function enclosed(Box: BoxEl, Text: TextEl, color: string, width: number, tree: 
   )
 }
 
-// One call: status, tool name, target, right-aligned summary. A running call's
-// row is filled, so it stands out in the frame.
+// One call: status, tool name, target, right-aligned summary. A running call
+// stands out by its frame colour and its blue name, never by a fill.
 function callRow(Text: TextEl, width: number, status: Status, tool: string, goal: Seg[], right: Seg[]): RenderElement {
   const rightCells = segCells(right)
   const room = width - TARGET_COL - 1
@@ -553,7 +565,7 @@ function callRow(Text: TextEl, width: number, status: Status, tool: string, goal
 
   const name = fit(tool, NAME_COL)
 
-  return paint(Text, status.isRunning ? C.running : undefined, width, [
+  return paint(Text, undefined, width, [
     statusOf(status),
     { text: '  ' },
     { text: name, color: status.isRunning ? C.blue : C.dim },
@@ -1014,19 +1026,22 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // The person's prompt: a chat.widget card sized to its text.
+  // The person's prompt: a rounded box in its own border colour, as wide as the
+  // tool frames, with no fill.
   on('ui.render', { component: 'UserMessage', surface: 'terminal' }, ($, e, next) => {
     if (e.props.origin.kind !== 'composer') return next(e)
     const { Box, Text } = $.ui.resolve(e)
-    const rows = lines(e.props.text).flatMap(row => hardWrap(row, cardWidth(e.viewport?.columns) - 4))
-    const width = Math.max(0, ...rows.map(cells)) + 4
+    const width = frameWidth(e.viewport?.columns)
+    const rows = lines(e.props.text).flatMap(row => hardWrap(row, width - 7))
 
-    return card(
-      Box,
-      Text,
-      C.widget,
-      width,
-      rows.map((row, i) => paint(Text, C.widget, width, [{ text: i === 0 ? '› ' : '  ', color: C.accent }, { text: row, color: C.text }])),
+    return (
+      <Box flexDirection="column" marginTop={1}>
+        {borderTop(Box, Text, C.prompt, width, [])}
+        {rows.map((row, i) => framed(Box, Text, C.prompt, [
+          paint(Text, undefined, width - 2, [{ text: ` ${i === 0 ? '› ' : '  '}`, color: C.accent }, { text: row, color: C.text }]),
+        ]))}
+        {borderBottom(Text, C.prompt, width)}
+      </Box>
     )
   })
 
@@ -1050,8 +1065,14 @@ export const register: Register = on => {
       if (e.props.isExpanded) inlineRows.add(call.tool_use_id)
       else inlineRows.delete(call.tool_use_id)
     }
-    if (e.props.isExpanded || e.props.calls.some(call => !DRAWN_TOOLS.has(call.tool))) return next(e)
+    if (e.props.isExpanded) return next(e)
     const { Box, Text } = $.ui.resolve(e)
+    if (e.props.calls.some(call => !DRAWN_TOOLS.has(call.tool))) {
+      // The engine's folded row for the group, inside one frame of the group's state.
+      const state = mergeStatus(e.props.calls)
+
+      return enclosed(Box, Text, frameColor(state), frameWidth(e.viewport?.columns), await next(e), { top: true, bottom: true })
+    }
     const width = frameWidth(e.viewport?.columns)
     const inner = width - 2
     const calls = e.props.calls
@@ -1080,43 +1101,41 @@ export const register: Register = on => {
   on('ui.render', { component: 'ToolUse', surface: 'terminal' }, async ($, e, next) => {
     if (!AGENT_TOOLS.has(e.props.tool)) return next(e)
     const { Box, Text } = $.ui.resolve(e)
-    const isFullscreen = e.viewport?.isFullscreen === true
-    const width = cardWidth(e.viewport?.columns)
+    const width = frameWidth(e.viewport?.columns)
+    const inner = width - 2
     const input = fields(e.props.input)
     const [byTool, runs, now] = await Promise.all([read($, agentByToolUse), read($, agents), $.clock.now()])
     const runId = byTool[e.props.tool_use_id]
     const run = runId ? runs[runId] : undefined
     const live = run ? isRunning(run) : e.props.isRunning
-    const bg = live ? C.running : C.snippet
-    const status: Seg = e.props.isErrored ? { text: '✗', color: C.red }
-      : e.props.isInterrupted ? { text: '■', color: C.faint }
-      : live ? { text: '◌', color: C.accent } : { text: '✓', color: C.green }
+    const state: Status = { isRunning: live, isErrored: e.props.isErrored, isInterrupted: e.props.isInterrupted }
+    const color = frameColor(state)
     const type = run?.type ?? (str(input.subagent_type) || 'agent')
-    const description = run?.description ?? str(input.description)
+    const description = run?.description || str(input.description) || firstLine(str(input.prompt))
     const right: Seg[] = run
       ? [{ text: `${run.tools} tool · ${duration((run.endedAt ?? now) - run.startedAt)}`, color: live ? C.blue : C.dim }]
       : []
     const rightCells = segCells(right)
     const fixed = 1 + 2 + 2 + cells(type) + 2 + (rightCells > 0 ? rightCells + 2 : 0) + 1
-    const shown = fitSegs([{ text: description, color: C.text }], Math.max(8, width - fixed))
-    const header = paint(Text, bg, width, [
-      status,
+    const shown = fitSegs([{ text: description, color: C.text }], Math.max(8, inner - fixed))
+    const header = paint(Text, undefined, inner, [
+      statusOf(state),
       { text: ' ' },
       { text: '◆', color: C.violet },
       { text: ' ' },
       { text: type, color: C.dim },
       { text: '  ' },
       ...shown,
-      ...(rightCells > 0 ? [{ text: ' '.repeat(Math.max(2, width - fixed - segCells(shown) + 2)) }, ...right] : []),
+      ...(rightCells > 0 ? [{ text: ' '.repeat(Math.max(2, inner - fixed - segCells(shown) + 2)) }, ...right] : []),
     ])
     const stepRow = (st: AgentStep): RenderElement => {
       const mark: Seg = !st.isDone ? { text: '◌', color: C.accent } : st.isErrored ? { text: '✗', color: C.red } : { text: ' ' }
-      return paint(Text, bg, width, [
+      return paint(Text, undefined, inner, [
         { text: '   ' },
         iconOf(kindOf(st.tool)),
         { text: ' ' },
         { text: fit(st.tool, 6).padEnd(7), color: C.dim },
-        { text: fit(st.target, width - 18), color: st.isDone ? C.soft : C.text },
+        { text: fit(st.target, inner - 18), color: st.isDone ? C.soft : C.text },
         { text: ' ' },
         mark,
       ])
@@ -1129,42 +1148,15 @@ export const register: Register = on => {
         run.filesEdited.length > 0 ? `sửa ${run.filesEdited.length} file` : '',
       ].filter(Boolean)
       const answer = firstLine(run.answer)
-      if (parts.length > 0) body.push(paint(Text, bg, width, [{ text: `   ${parts.join(' · ')}`, color: C.dim }]))
-      if (answer) body.push(paint(Text, bg, width, [{ text: '   ↳ ', color: C.faint }, { text: fit(answer, width - 7), color: C.soft }]))
+      if (parts.length > 0) body.push(paint(Text, undefined, inner, [{ text: `   ${parts.join(' · ')}`, color: C.dim }]))
+      if (answer) body.push(paint(Text, undefined, inner, [{ text: '   ↳ ', color: C.faint }, { text: fit(answer, inner - 7), color: C.soft }]))
     }
 
-    if (!isFullscreen || !run) return card(Box, Text, bg, width, body)
-
-    // Hover: every step the agent took, then the head of its answer.
-    const popWidth = Math.min(width, 72)
-    const answerLines = lines(run.answer.trim()).filter(l => l.trim() !== '').slice(0, 4)
-    const pop = card(Box, Text, C.popup, popWidth, [
-      paint(Text, C.popup, popWidth, [
-        { text: '◆ ', color: C.violet },
-        { text: `${type}  `, color: C.dim },
-        ...fitSegs([{ text: description, color: C.text, bold: true }], popWidth - cells(type) - 6),
-      ]),
-      ...run.steps.slice(-12).map(st =>
-        paint(Text, C.popup, popWidth, [
-          iconOf(kindOf(st.tool)),
-          { text: ` ${fit(st.tool, 6).padEnd(7)}`, color: C.dim },
-          { text: fit(st.target, popWidth - 13), color: C.soft },
-        ]),
-      ),
-      ...(answerLines.length > 0
-        ? [
-            paint(Text, C.popup, popWidth, [{ text: '─'.repeat(popWidth - 3), color: C.track }]),
-            ...answerLines.map(l => paint(Text, C.popup, popWidth, [{ text: fit(l, popWidth - 3), color: C.text }])),
-          ]
-        : []),
-    ], 0)
-
     return (
-      <Box key={`agent-${e.props.tool_use_id}`} flexDirection="column" marginTop={1}>
-        {card(Box, Text, bg, width, body, 0)}
-        <Box position="absolute" top={2 + body.length} left={0} display="none" hover={{ display: 'flex' }}>
-          {pop}
-        </Box>
+      <Box flexDirection="column" marginTop={1}>
+        {borderTop(Box, Text, color, width, [])}
+        {body.map(row => framed(Box, Text, color, [row]))}
+        {borderBottom(Text, color, width)}
       </Box>
     )
   })
@@ -1180,12 +1172,12 @@ export const register: Register = on => {
     const tool = e.props.tool
     const width = frameWidth(e.viewport?.columns)
     if (!DRAWN_TOOLS.has(tool)) {
-      if (!isForeign(tool)) return next(e)
-      // Another plugin's tool: its own row, inside a frame that its result
-      // block closes. A call still running, or one drawn with its result inline,
-      // gets no result block, so its frame closes here.
+      // Any tool the mod does not draw itself: the engine's or another plugin's
+      // row, inside a frame. An MCP tool's result block closes it; a built-in
+      // one has no result block, and neither has a call still running or one
+      // drawn with its result inline, so their frame closes here.
       const { Box, Text } = $.ui.resolve(e)
-      const isOpen = !e.props.isRunning && e.props.output !== undefined && !inlineRows.has(e.props.tool_use_id)
+      const isOpen = isForeign(tool) && !e.props.isRunning && e.props.output !== undefined && !inlineRows.has(e.props.tool_use_id)
       const status: Status = { isRunning: e.props.isRunning, isErrored: e.props.isErrored, isInterrupted: e.props.isInterrupted }
 
       return enclosed(Box, Text, frameColor(status), width, await next(e), { top: true, bottom: !isOpen })
@@ -1295,24 +1287,25 @@ export const register: Register = on => {
     const state: Seg = e.props.isRunning
       ? { text: 'đang chạy', color: C.blue }
       : e.props.isErrored ? { text: '✗ lỗi', color: C.red } : { text: '✓ xong', color: C.green }
-    const pop = card(Box, Text, C.popup, popWidth, [
-      paint(Text, C.popup, popWidth, [
+    const popInner = popWidth - 2
+    const pop = popup(Box, Text, color, popWidth, [
+      [
         iconOf(kindOf(tool)),
         { text: ` ${tool}  `, color: C.dim },
-        ...fitSegs([{ text: full, color: C.text, bold: true }], popWidth - cells(tool) - 16),
+        ...fitSegs([{ text: full, color: C.text, bold: true }], popInner - cells(tool) - 16),
         { text: '  ' },
         state,
-      ]),
+      ],
       ...(timing
-        ? [paint(Text, C.popup, popWidth, [{ text: `${timing.ms === null ? 'đang chạy' : `chạy ${seconds(timing.ms)}`} · lúc ${clockTime(timing.startedAt)}`, color: C.dim }])]
+        ? [[{ text: `${timing.ms === null ? 'đang chạy' : `chạy ${seconds(timing.ms)}`} · lúc ${clockTime(timing.startedAt)}`, color: C.dim }]]
         : []),
       ...(tail.length > 0
         ? [
-            paint(Text, C.popup, popWidth, [{ text: '─'.repeat(popWidth - 3), color: '#4E4F54' }]),
-            ...tail.map(l => paint(Text, C.popup, popWidth, [{ text: fit(l, popWidth - 3), color: C.soft }])),
+            [{ text: '─'.repeat(popInner - 2), color: C.track }],
+            ...tail.map((l): Seg[] => [{ text: fit(l, popInner - 3), color: C.soft }]),
           ]
         : []),
-    ], 0)
+    ])
 
     return (
       <Box key={`tool-${id}`} flexDirection="column" marginTop={isFirst ? 1 : 0}>
@@ -1324,7 +1317,8 @@ export const register: Register = on => {
     )
   })
 
-  // The ToolUse row already summarizes these results. A failure in fullscreen is
+  // The ToolUse row already summarizes these results (an Agent card carries its
+  // answer's first line, so the engine's filled block is not drawn). A failure in fullscreen is
   // summarized in the frame too: the engine's block would cut the run's border.
   // Another plugin's tool keeps its result block, drawn inside the frame its row
   // opened: side bars down its height, then the closing border.
@@ -1336,7 +1330,7 @@ export const register: Register = on => {
       return enclosed(Box, Text, color, frameWidth(e.viewport?.columns), await next(e), { top: false, bottom: true })
     }
     const isFramed = !e.props.isErrored || e.viewport?.isFullscreen === true
-    if (!isFramed || !DRAWN_TOOLS.has(e.props.tool)) return next(e)
+    if (!isFramed || !(DRAWN_TOOLS.has(e.props.tool) || AGENT_TOOLS.has(e.props.tool))) return next(e)
     const { Box } = $.ui.resolve(e)
 
     return <Box />
@@ -1365,7 +1359,8 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, async ($, e, next) => {
     const [repo, session, runs, sc] = await Promise.all([read($, git), read($, band), read($, agents), read($, scene)])
     const running = Object.values(runs).filter(isRunning).sort((a, b) => a.startedAt - b.startedAt)
-    const showScene = sc.enabled && (e.props.isWorking || sc.playing) && e.props.maxRows >= SCENE_ROWS + 2
+    const sceneRows = SCENE_ROWS[sc.playing ? 'game' : 'scene']
+    const showScene = sc.enabled && (e.props.isWorking || sc.playing) && e.props.maxRows >= sceneRows + 2
     if (e.props.hasSurvey || (repo === null && session === null && running.length === 0 && !showScene)) return next(e)
     const { Box, Text, Client, Button } = $.ui.resolve(e)
     const sceneProps: SceneProps = {
@@ -1381,7 +1376,7 @@ export const register: Register = on => {
     }
     const sceneBlock = showScene ? (
       <Box flexDirection="column">
-        <Client key="scene" module="./scene.tsx" props={sceneProps} height={SCENE_ROWS} />
+        <Client key="scene" module="./scene.tsx" props={sceneProps} height={sceneRows} />
         {sc.playing && (
           <Box gap={2}>
             <Button key="jump" hotkey="j" label="j nhảy" onPress={() => update($, scene, s => ({ ...s, jumpSeq: s.jumpSeq + 1 }))} />
@@ -1531,14 +1526,14 @@ export const register: Register = on => {
                   <Text color={C.green}>{`+${f.added}`.padStart(5)}</Text>
                 </Text>
                 <Box position="absolute" top={1} left={2} display="none" hover={{ display: 'flex' }}>
-                  {card(Box, Text, C.popup, popWidth, (f.preview.length > 0 ? f.preview : ['file mới']).map(l =>
+                  {popup(Box, Text, C.frame, popWidth, (f.preview.length > 0 ? f.preview : ['file mới']).map((l): Seg[] =>
                     l.startsWith('+') || l.startsWith('-')
-                      ? paint(Text, C.popup, popWidth, [
+                      ? [
                           { text: l.startsWith('+') ? '+ ' : '− ', color: l.startsWith('+') ? C.green : C.red },
-                          ...fitSegs(highlight(l.slice(1), f.path), popWidth - 4),
-                        ])
-                      : paint(Text, C.popup, popWidth, [{ text: l, color: C.dim }]),
-                  ), 0)}
+                          ...fitSegs(highlight(l.slice(1), f.path), popWidth - 6),
+                        ]
+                      : [{ text: l, color: C.dim }],
+                  ))}
                 </Box>
               </Box>
             )
