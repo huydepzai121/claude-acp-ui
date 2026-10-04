@@ -319,12 +319,12 @@ test('in fullscreen consecutive calls share one frame; text between them splits 
   const last = await $.ui.mount(readRow('u2', 'src/b.ts'))
   expect(await first.find({ type: 'Text', text: /^╭/ })).toBeDefined()
   expect(await first.find({ type: 'Text', text: /2 lệnh/ })).toBeDefined()
-  // The hover popup carries its own frame; the shared one closes on the last row only.
+  // The shared frame opens on the first row and closes on the last row only.
   const corners = async (ui: typeof first, mark: string) => JSON.stringify(await ui.drawn()).split(mark).length - 1
-  expect(await corners(first, '╭')).toBe(2)
-  expect(await corners(first, '╰')).toBe(1)
-  expect(await corners(last, '╭')).toBe(1)
-  expect(await corners(last, '╰')).toBe(2)
+  expect(await corners(first, '╭')).toBe(1)
+  expect(await corners(first, '╰')).toBe(0)
+  expect(await corners(last, '╭')).toBe(0)
+  expect(await corners(last, '╰')).toBe(1)
 
   await say('Đã đọc xong, giờ tìm tiếp.')
   await $.tool.call({ tool: 'Read', file_path: 'src/c.ts', tool_use_id: 'u3' })
@@ -571,7 +571,6 @@ test('a running Agent card signals it by the accent frame, not a fill', async ($
   expect(running?.props?.color).not.toBe(done?.props?.color)
 })
 
-const POPUP_FILL = '#3A3B3F'
 const count = (text: string, mark: string) => text.split(mark).length - 1
 
 test('an Agent card has no hover popup: one rounded frame in fullscreen', async ($, on) => {
@@ -599,20 +598,19 @@ test('an Agent card has no hover popup: one rounded frame in fullscreen', async 
   expect(drawn).not.toContain('hover')
 })
 
-test('the hover popup of a tool row is a rounded frame whose rows use the darkest tone', async ($, on) => {
+test('a tool row has no hover popup: one rounded frame in fullscreen', async ($, on) => {
   mock.clock(on)
   const ui = await $.ui.mount({
-    ...readRow('u_hover', 'src/a.ts'),
-    props: { ...readRow('u_hover', 'src/a.ts').props, tool: 'Bash', input: { command: 'npm test' }, output: { stdout: 'one\ntwo', stderr: '' } },
+    ...readRow('u_run', 'src/a.ts'),
+    props: { ...readRow('u_run', 'src/a.ts').props, tool: 'Bash', input: { command: 'npm test' }, output: { stdout: 'one\ntwo', stderr: '' } },
   })
   const drawn = JSON.stringify(await ui.drawn())
 
-  expect(count(drawn, '╭')).toBe(2)
-  expect(count(drawn, '╮')).toBe(2)
-  expect(count(drawn, '╰')).toBe(2)
-  expect(count(drawn, '╯')).toBe(2)
-  expect(drawn).toContain('#27282B')
-  expect(drawn).not.toContain(POPUP_FILL)
+  expect(count(drawn, '╭')).toBe(1)
+  expect(count(drawn, '╮')).toBe(1)
+  expect(count(drawn, '╰')).toBe(1)
+  expect(count(drawn, '╯')).toBe(1)
+  expect(drawn).not.toContain('hover')
 })
 
 test('an Agent card with no description reads the first line of its prompt', async ($, on) => {

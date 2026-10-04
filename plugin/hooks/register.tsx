@@ -190,11 +190,6 @@ const lines = (text: string): string[] => (text === '' ? [] : text.replace(/\r\n
 
 const fileName = (path: string): string => path.split(/[\\/]/).slice(-3).join('/')
 
-const clockTime = (ms: number): string => {
-  const d = new Date(ms)
-  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':')
-}
-
 const seconds = (ms: number): string => (ms < 10000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms / 1000)}s`)
 
 // The lines that differ once the shared head and tail are stripped.
@@ -514,18 +509,6 @@ const framed = (Box: BoxEl, Text: TextEl, color: string, parts: RenderElement[])
     <Text color={color}>│</Text>
   </Box>
 )
-
-// A hover popup: a rounded frame in `color`. A terminal paints no background, so
-// each row carries the darkest tone itself to hide the text drawn beneath.
-function popup(Box: BoxEl, Text: TextEl, color: string, width: number, rows: Seg[][]): RenderElement {
-  return (
-    <Box flexDirection="column">
-      {borderTop(Box, Text, color, width, [])}
-      {rows.map(segs => framed(Box, Text, color, [paint(Text, C.snippet, width - 2, segs)]))}
-      {borderBottom(Text, color, width)}
-    </Box>
-  )
-}
 
 // Side bars of a tall block: a column of `│` drawn absolute, spanning the block
 // whatever its height, clipped to it. Taller than any result block there is.
@@ -1166,8 +1149,7 @@ export const register: Register = on => {
   // bottom one. The main screen cannot redraw a row once printed, so each call
   // there is a whole frame. Edits carry their changed lines, highlighted; in
   // fullscreen a long diff folds behind a toggle, a finished run of several
-  // calls folds into its border, and hovering a row shows the full command, its
-  // timing and its last output lines.
+  // calls folds into its border.
   on('ui.render', { component: 'ToolUse', surface: 'terminal' }, async ($, e, next) => {
     const tool = e.props.tool
     const width = frameWidth(e.viewport?.columns)
@@ -1279,40 +1261,9 @@ export const register: Register = on => {
       )
     }
 
-    // Hover card, placed under the row without moving anything.
-    const out = fields(e.props.output)
-    const tail = RUN_TOOLS.has(tool) ? lines(`${str(out.stdout)}${str(out.stderr)}`.trim()).slice(-3) : []
-    const popWidth = Math.min(width, 64)
-    const full = RUN_TOOLS.has(tool) ? (str(input.command).split('\n')[0] ?? '') : path || target(tool, input).map(s => s.text).join('')
-    const state: Seg = e.props.isRunning
-      ? { text: 'đang chạy', color: C.blue }
-      : e.props.isErrored ? { text: '✗ lỗi', color: C.red } : { text: '✓ xong', color: C.green }
-    const popInner = popWidth - 2
-    const pop = popup(Box, Text, color, popWidth, [
-      [
-        iconOf(kindOf(tool)),
-        { text: ` ${tool}  `, color: C.dim },
-        ...fitSegs([{ text: full, color: C.text, bold: true }], popInner - cells(tool) - 16),
-        { text: '  ' },
-        state,
-      ],
-      ...(timing
-        ? [[{ text: `${timing.ms === null ? 'đang chạy' : `chạy ${seconds(timing.ms)}`} · lúc ${clockTime(timing.startedAt)}`, color: C.dim }]]
-        : []),
-      ...(tail.length > 0
-        ? [
-            [{ text: '─'.repeat(popInner - 2), color: C.track }],
-            ...tail.map((l): Seg[] => [{ text: fit(l, popInner - 3), color: C.soft }]),
-          ]
-        : []),
-    ])
-
     return (
       <Box key={`tool-${id}`} flexDirection="column" marginTop={isFirst ? 1 : 0}>
         {block}
-        <Box position="absolute" top={block.length} left={0} display="none" hover={{ display: 'flex' }}>
-          {pop}
-        </Box>
       </Box>
     )
   })
@@ -1513,31 +1464,16 @@ export const register: Register = on => {
           })}
         </Box>
         <Box flexDirection="column">
-          {section(Text, 'CHANGES', width, e.viewport?.isFullscreen === true ? 'rê chuột xem diff' : '')}
+          {section(Text, 'CHANGES', width)}
           {files.length === 0 && <Text color={C.faint}>Không có thay đổi.</Text>}
-          {files.slice(0, 12).map(f => {
-            const popWidth = Math.min(width, 44)
-            return (
-              <Box key={`file-${f.path}`} flexDirection="column">
-                <Text>
-                  <Text bold color={statusColor(f.status)}>{f.status} </Text>
-                  <Text color={C.text}>{fit(f.path, pathWidth).padEnd(pathWidth)}</Text>
-                  <Text color={C.red}>{`−${f.removed}`.padStart(5)}</Text>
-                  <Text color={C.green}>{`+${f.added}`.padStart(5)}</Text>
-                </Text>
-                <Box position="absolute" top={1} left={2} display="none" hover={{ display: 'flex' }}>
-                  {popup(Box, Text, C.frame, popWidth, (f.preview.length > 0 ? f.preview : ['file mới']).map((l): Seg[] =>
-                    l.startsWith('+') || l.startsWith('-')
-                      ? [
-                          { text: l.startsWith('+') ? '+ ' : '− ', color: l.startsWith('+') ? C.green : C.red },
-                          ...fitSegs(highlight(l.slice(1), f.path), popWidth - 6),
-                        ]
-                      : [{ text: l, color: C.dim }],
-                  ))}
-                </Box>
-              </Box>
-            )
-          })}
+          {files.slice(0, 12).map(f => (
+            <Text key={`file-${f.path}`}>
+              <Text bold color={statusColor(f.status)}>{f.status} </Text>
+              <Text color={C.text}>{fit(f.path, pathWidth).padEnd(pathWidth)}</Text>
+              <Text color={C.red}>{`−${f.removed}`.padStart(5)}</Text>
+              <Text color={C.green}>{`+${f.added}`.padStart(5)}</Text>
+            </Text>
+          ))}
           {files.length > 12 && <Text color={C.faint}>… {files.length - 12} file nữa</Text>}
         </Box>
         {repo && (
