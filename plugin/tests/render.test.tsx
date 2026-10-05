@@ -885,3 +885,45 @@ test('a built-in tool the mod does not draw keeps the engine row, in a frame it 
   expect(await use.find({ type: 'Text', text: /^╰─+╯$/ })).toBeDefined()
   expect(await use.find({ type: 'Text', text: '◎ Retrieval header' })).toBeDefined()
 })
+
+test('the desktop band button rewrites what is in the prompt box', async ($, on) => {
+  let filled = ''
+  on('prompt.read', () => ({ value: { text: 'sửa lỗi f12', cursor: 11 } }))
+  on('model.fork', () => ({ value: { isAnswered: true as const, text: 'Sửa lỗi viewport khi mở DevTools (F12).', usage: USAGE } }))
+  on('prompt.fill', (_$, e) => {
+    filled = e.text
+    return { isFilled: true, text: e.text, cursor: e.text.length }
+  })
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'desktop',
+    component: 'AbovePrompt',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  })
+
+  await ui.press({ key: 'enhance' })
+
+  expect(filled).toBe('Sửa lỗi viewport khi mở DevTools (F12).')
+})
+
+test('on the desktop a rewrite the prompt box refuses shows in the band to send', async ($, on) => {
+  let sent = ''
+  on('prompt.read', () => ({ value: { text: 'sửa lỗi f12', cursor: 11 } }))
+  on('model.fork', () => ({ value: { isAnswered: true as const, text: 'Sửa lỗi F12.', usage: USAGE } }))
+  on('prompt.fill', () => ({ isFilled: false, text: '', cursor: 0 }))
+  on('prompt.submit', (_$, e) => {
+    sent = e.text
+    return { text: e.text }
+  })
+  const ui = await $.ui.mount({
+    plugin: 'acp-ui',
+    surface: 'desktop',
+    component: 'AbovePrompt',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  })
+
+  await ui.press({ key: 'enhance' })
+  await ui.press({ key: 'enhance-send' })
+
+  expect(sent).toBe('Sửa lỗi F12.')
+})

@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { BoxProps, ElementConstructor, EngineInterface, Register, RenderElement, TextProps, Timer } from 'claude-code'
 
-import type { AgentRun, AgentStep, Band, Beat, FileChange, Footer, Git, Scene, Stats, Timing, ToolRuns } from '../types'
+import type { AgentRun, AgentStep, Band, Beat, Enhanced, FileChange, Footer, Git, Scene, Stats, Timing, ToolRuns } from '../types'
 import type { SceneProps } from './scene'
 
 type TextEl = ElementConstructor<TextProps>
@@ -135,6 +135,7 @@ const beats = atom({ plugin: 'acp-ui', key: 'beats' } as const, [])
 const activity = atom({ plugin: 'acp-ui', key: 'activity' } as const, {})
 const agents = atom({ plugin: 'acp-ui', key: 'agents' } as const, {})
 const agentByToolUse = atom({ plugin: 'acp-ui', key: 'agentByToolUse' } as const, {})
+const enhanced = atom({ plugin: 'acp-ui', key: 'enhanced' } as const, { busy: false, text: null } as Enhanced)
 
 const scene = atom({ plugin: 'acp-ui', key: 'scene' } as const, {
   enabled: true, bubble: '', turnTools: 0, playing: false, jumpSeq: 0, score: 0, best: 0,
@@ -662,6 +663,7 @@ const ENHANCE_ACTION = 'app:toggleDiffPreSession'
 // when the box could not take it, so a command can show it instead.
 async function enhanceIntoPrompt($: EngineInterface, draft: string): Promise<string | null> {
   $.ui.status('✨ đang viết lại câu lệnh…')
+  await update($, enhanced, () => ({ busy: true, text: null }))
   try {
     const better = await enhance($, draft)
     if (better === null || better === '') {
@@ -670,19 +672,23 @@ async function enhanceIntoPrompt($: EngineInterface, draft: string): Promise<str
       return null
     }
     const filled = await $.prompt.fill({ text: better, mode: 'replace' })
-    if (!filled.isFilled) return better
+    if (!filled.isFilled) {
+      await update($, enhanced, en => ({ ...en, text: better }))
+      return better
+    }
     $.ui.toast('✨ Đã viết lại — xem trong ô nhập, Enter để gửi.')
 
     return null
   } finally {
     $.ui.status(undefined)
+    await update($, enhanced, en => ({ ...en, busy: false }))
   }
 }
 
 async function enhancePromptBox($: EngineInterface): Promise<void> {
   const { text } = await $.prompt.read()
   if (text.trim() === '') {
-    $.ui.toast('Gõ câu lệnh vào ô nhập rồi bấm Ctrl+Shift+L để viết lại.')
+    $.ui.toast('Gõ câu lệnh vào ô nhập trước, hoặc dùng /enhance <câu lệnh>.')
     return
   }
   await enhanceIntoPrompt($, text.trim())
@@ -1383,6 +1389,46 @@ export const register: Register = on => {
           ])}
         <Button key="enhance" plain label="✨" action={ENHANCE_ACTION} onPress={() => enhancePromptBox($)} />
       </Box>
+      </Box>
+    )
+  })
+
+  // The desktop draws its own composer, so the nearest a plugin gets to its
+  // send button is the band just above it.
+  on('ui.render', { component: 'AbovePrompt', surface: 'desktop' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
+    const en = await read($, enhanced)
+    if (e.props.isWorking && en.text === null) return next(e)
+    const { Box, Button, Markdown } = $.ui.resolve(e)
+    // A rewrite the desktop's prompt box would not take shows here to send.
+    if (en.text !== null) {
+      const text = en.text
+      return (
+        <Box flexDirection="column" gap={1}>
+          <Markdown text={text} />
+          <Box gap={1} justifyContent="flex-end">
+            <Button key="enhance-drop" label="Bỏ" onPress={() => update($, enhanced, s => ({ ...s, text: null }))} />
+            <Button
+              key="enhance-send"
+              variant="primary"
+              label="Gửi"
+              onPress={async () => {
+                await update($, enhanced, s => ({ ...s, text: null }))
+                await $.prompt.submit({ text, asUser: true })
+              }}
+            />
+          </Box>
+        </Box>
+      )
+    }
+
+    return (
+      <Box justifyContent="flex-end">
+        {en.busy ? (
+          <Button key="enhance" label="✨ Đang viết lại…" onPress={() => {}} />
+        ) : (
+          <Button key="enhance" label="✨ Viết lại câu lệnh" onPress={() => enhancePromptBox($)} />
+        )}
       </Box>
     )
   })

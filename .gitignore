@@ -2,3 +2,4 @@ node_modules/
 *.tgz
 plugin/.claude-plugin/types/
 plugin/tsconfig.json
+claude-ai-skill/*.zip

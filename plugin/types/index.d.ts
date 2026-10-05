@@ -56,6 +56,12 @@ export type Scene = {
   best: number
 }
 
+// /enhance in flight, and a rewrite the prompt box would not take.
+export interface Enhanced {
+  busy: boolean
+  text: string | null
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'acp-ui': {
@@ -74,6 +80,7 @@ declare module 'claude-code' {
       agents: Record<string, AgentRun>
       agentByToolUse: Record<string, string>
       scene: Scene
+      enhanced: Enhanced
     }
   }
 }
