@@ -653,6 +653,41 @@ const enhanceRequest = (draft: string): string =>
     '>>>',
   ].join('\n')
 
+// The band's ✨ button presses on this engine action's chord, so binding a key
+// to it in ~/.claude/keybindings.json (ctrl+shift+l) enhances the prompt box.
+// The action itself only acts while the diff panel is open.
+const ENHANCE_ACTION = 'app:toggleDiffPreSession'
+
+// Rewrites the draft and puts it in the prompt box; resolves to the rewrite
+// when the box could not take it, so a command can show it instead.
+async function enhanceIntoPrompt($: EngineInterface, draft: string): Promise<string | null> {
+  $.ui.status('✨ đang viết lại câu lệnh…')
+  try {
+    const better = await enhance($, draft)
+    if (better === null || better === '') {
+      $.ui.toast('Không viết lại được lúc này; câu gốc đã được đặt lại vào ô nhập.')
+      await $.prompt.fill({ text: draft, mode: 'replace' })
+      return null
+    }
+    const filled = await $.prompt.fill({ text: better, mode: 'replace' })
+    if (!filled.isFilled) return better
+    $.ui.toast('✨ Đã viết lại — xem trong ô nhập, Enter để gửi.')
+
+    return null
+  } finally {
+    $.ui.status(undefined)
+  }
+}
+
+async function enhancePromptBox($: EngineInterface): Promise<void> {
+  const { text } = await $.prompt.read()
+  if (text.trim() === '') {
+    $.ui.toast('Gõ câu lệnh vào ô nhập rồi bấm Ctrl+Shift+L để viết lại.')
+    return
+  }
+  await enhanceIntoPrompt($, text.trim())
+}
+
 // Drops a wrapping code fence or quotes a model may add despite the request.
 const unwrap = (text: string): string =>
   text
@@ -837,23 +872,9 @@ export const register: Register = on => {
       $.ui.toast('Gõ /enhance <câu lệnh> để viết lại câu lệnh đó.')
       return {}
     }
+    const unfilled = await enhanceIntoPrompt($, draft)
 
-    $.ui.status('✨ đang viết lại câu lệnh…')
-    try {
-      const better = await enhance($, draft)
-      if (better === null || better === '') {
-        $.ui.toast('Không viết lại được lúc này; câu gốc đã được đặt lại vào ô nhập.')
-        await $.prompt.fill({ text: draft, mode: 'replace' })
-        return {}
-      }
-      const filled = await $.prompt.fill({ text: better, mode: 'replace' })
-      if (!filled.isFilled) return { text: better }
-      $.ui.toast('✨ Đã viết lại — xem trong ô nhập, Enter để gửi.')
-
-      return {}
-    } finally {
-      $.ui.status(undefined)
-    }
+    return unfilled === null ? {} : { text: unfilled }
   })
 
   on('prompt.submit', async ($, e, next) => {
@@ -1360,6 +1381,7 @@ export const register: Register = on => {
             { text: bar.empty, color: C.track },
             { text: ` ${Math.round(percent)}%`, color: C.soft },
           ])}
+        <Button key="enhance" plain label="✨" action={ENHANCE_ACTION} onPress={() => enhancePromptBox($)} />
       </Box>
       </Box>
     )
