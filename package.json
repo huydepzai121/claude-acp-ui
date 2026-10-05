@@ -9,6 +9,7 @@
   "files": [
     "bin",
     "plugin/.claude-plugin/plugin.json",
+    "plugin/commands",
     "plugin/hooks",
     "plugin/types"
   ],
